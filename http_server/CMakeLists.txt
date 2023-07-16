@@ -7,4 +7,4 @@ add_library(http_server SHARED
     api_handler.cpp
 )
 
-target_link_libraries(http_server PUBLIC app)
+target_link_libraries(http_server PUBLIC app CONAN_PKG::boost)
