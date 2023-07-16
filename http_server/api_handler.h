@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../application/application.h"
+#include "application.h"
 #include "http_types.h"
 
 namespace http_handler
