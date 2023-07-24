@@ -40,7 +40,7 @@ void RunWorkers(unsigned num_threads, const Fn& fn)
 
 int main(int argc, const char* argv[])
 {
-    // InitLogging();
+    InitLogging();
     try
     {
         const unsigned num_threads = std::thread::hardware_concurrency();

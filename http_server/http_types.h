@@ -32,8 +32,11 @@ struct ContentType
     static constexpr std::string_view IMG_ICO = "image/vnd.microsoft.icon";
     static constexpr std::string_view IMG_TIF = "image/tiff";
     static constexpr std::string_view IMG_SVG = "image/svg+xml";
-    static constexpr std::string_view MP3 = "audio/mpegs";
+    static constexpr std::string_view MP3 = "audio/mpeg";
     static constexpr std::string_view OCT_STREAM = "application/octet-stream";
+    static constexpr std::string_view DOC = "application/msword";
+    static constexpr std::string_view DOCX =
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 };
 
 } // namespace http_handler

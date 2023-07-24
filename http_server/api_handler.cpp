@@ -20,6 +20,7 @@ using namespace std::literals;
 
 struct Endpoint
 {
+    Endpoint() = delete;
     static constexpr std::string_view API_PREFIX = "/api/"sv;
     static constexpr std::string_view FIELDS = "/api/v1/prog/fields"sv;
     static constexpr std::string_view FILE = "/api/v1/prog/file"sv;
