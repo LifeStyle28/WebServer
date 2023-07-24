@@ -8,8 +8,10 @@ namespace app
 class Application
 {
 public:
-    Application() = default;
+    Application(model::Config& config);
 private:
+    model::Config& m_config;
+    BringFieldsUseCase m_bringFields{m_config.GetContracts()};
 };
 
 } // namespace app

@@ -59,7 +59,8 @@ int main(int argc, const char* argv[])
         });
 
         // 3. Создаем экземпляр приложения
-        app::Application app;
+        model::Config config; // @TODO - сделать парсинг конфига, создать config.json
+        app::Application app{config};
 
         // 4. Создаём обработчик HTTP-запросов
         auto handler_strand = net::make_strand(ioc);
