@@ -34,6 +34,8 @@ USER admin
 # Скопируем приложение из сборочного контейнера в директорию /app.
 COPY --from=build /app/build/bin/web_server /app/
 COPY --from=build /app/build/lib/* /app/
+COPY ./templates /app/templates
+COPY ./script /app/script
 ENV LD_LIBRARY_PATH=/app/
 
 # Запускаем веб-сервер
