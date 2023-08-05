@@ -4,6 +4,7 @@
 #include <boost/json/parse.hpp>
 #include <boost/json/serialize.hpp>
 #include <boost/json/value.hpp>
+#include <cstdlib>
 
 #include "response_builder.h"
 
@@ -240,10 +241,45 @@ bool ApiHandler::IsApiRequest(const StringRequest& request) const
     return request.target().starts_with(Endpoint::API_PREFIX);
 }
 
+/**
+ * Проверяет отправляет ли клиент сформированный json-шаблон для генерации документов
+ * @param request запрос
+ */
+bool ApiHandler::IsCreateDocsRequest(const StringRequest& request) const
+{
+    return request.target() == (Endpoint::FILE);
+}
+
 StringResponse ApiHandler::HandleApiRequest(const StringRequest& request)
 {
     RequestHandlingContext ctx(request, m_app);
     return ctx.Handle();
+}
+
+/**
+ * Получает json-строку и формирует документы
+ * @param request запрос
+ */
+void ApiHandler::HandleJsonRecieve(const StringRequest& request)
+{
+    const std::string jsonConfig(request.body());
+    StartScript("/app/result/", jsonConfig);
+}
+
+/**
+ * Запускает скрипт
+ * @param savePath путь для сохранения сгенерированных документов
+ * @param jsonConfig json-шаблон с полями документов
+ */
+void ApiHandler::StartScript(const std::string& savePath, const std::string& jsonConfig)
+{
+    std::stringstream command;
+    command << "python3 ";
+    command << '\'' << "/app/templates/script.py" << '\'' << ' '; ///< binary file path
+    command << '\'' << jsonConfig << '\'' << ' '; ///< json-string
+    command << '\'' << savePath << '\''; ///< path for save
+    std::system(command.str().c_str());
+    std::system("tar -cvf /app/result/docs.tar /app/result");
 }
 
 } // namespace http_handler

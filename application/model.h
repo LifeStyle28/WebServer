@@ -5,6 +5,8 @@
 #include <string_view>
 
 #include <boost/iterator/indirect_iterator.hpp>
+#include <boost/json/object.hpp>
+#include <boost/json/parse.hpp>
 
 namespace model
 {
@@ -12,8 +14,8 @@ namespace model
 struct ContractField
 {
     std::string m_key;
-    std::string m_value;
     std::string m_tag;
+    std::string m_value;
 };
 
 class Contract
@@ -52,6 +54,17 @@ public:
     ContractsView GetContracts() const noexcept;
 private:
     ContractsStorage m_contracts;
+};
+
+class ConfigLoader
+{
+public:
+    ConfigLoader(Config& config);
+    void Load(std::ifstream& in); ///< загружает шаблон
+private:
+    Contract LoadContract(boost::json::value& contract); ///< загружает контракты шаблона
+    ContractField LoadField(boost::json::value& field); ///< загружает поля контракта
+    Config& m_config;
 };
 
 } // namespace model

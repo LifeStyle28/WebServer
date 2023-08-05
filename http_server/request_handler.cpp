@@ -137,7 +137,7 @@ RequestHandler::FileRequestResult RequestHandler::HandleFileRequest(const String
         return builder.MakeBadRequestError("Invalid method"sv);
     }
 
-    const std::string path = "some_path"; // @TODO - заменить на реальный путь
+    const std::string path = "/app/result/docs.tar";
     http::file_body::value_type body;
     beast::error_code ec;
     body.open(path.c_str(), beast::file_mode::read, ec);

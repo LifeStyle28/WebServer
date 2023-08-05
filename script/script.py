@@ -15,8 +15,6 @@ from dateutil.relativedelta import *
 # argv[1] - путь до шаблона json
 # argv[2] - путь для сохранения файла
 
-# argv[3] - тип сохраняемого документа: 1 - docx, 2 - pdf, 3 - docx and pdf
-
 def space_num(num):
     return format(num, ',d').replace(',',' ')
 
@@ -189,16 +187,16 @@ if __name__ == "__main__":
         print("Args length:", len(sys.argv))
         print("Arg[1] =", str(sys.argv[1]))
         print("Arg[2] =", str(sys.argv[2]))
-        #print("Arg[3] =", int(sys.argv[3]))
 
         error_status = 0
-        with open(str(sys.argv[1]), encoding="utf8") as json_file: # открываем json-шаблон
-                data = json.load(json_file)
+        #with open(str(sys.argv[1]), encoding="utf8") as json_file: # открываем json-шаблон
+        #data = json.load(json_file)
+        data = json.loads(str(sys.argv[1]))
         doc_nums = get_docs_nums(data)
 
         for i in doc_nums:
                 doc_num = int(i)
-                document = docx.Document("docx/" + str(doc_num) + ".docx")
+                document = docx.Document("/app/templates/docx/" + str(doc_num) + ".docx")
 
                 for entry in data["tag_values"]:
                         for curr in entry:
@@ -215,20 +213,9 @@ if __name__ == "__main__":
                 loan_sum, perc, date = get_table_need_values(data)
                 make_tables(document, doc_num, loan_sum, perc, date)
 
-                # if int(sys.argv[3]) == 2:
-                #     save_name = str("temp/" + get_name_by_num(doc_num) + ".docx")
-                # else:
                 save_name = str(sys.argv[2] + get_name_by_num(doc_num) + ".docx")
                 print("Name to save is", save_name)
                 document.save(save_name)
-                # try:
-                #         if int(sys.argv[3]) > 1:
-                #                 convert(save_name, str(sys.argv[2] + get_name_by_num(doc_num) + ".pdf"))
-                # except:
-                #         print("Error converting to PDF, file #", doc_num)
-                #         error_status = 1
-                # if int(sys.argv[3]) == 2: # если вариант "только PDF", то удаляем docx
-                #         os.remove(save_name)
         print("Program exit. Error status is", error_status)
         if error_status == 1:
             exit(int(error_status))

@@ -23,6 +23,7 @@ add_subdirectory(http_server)
 include_directories(
     http_server
     logger
+    application
 )
 
 add_executable(web_server
@@ -30,4 +31,4 @@ add_executable(web_server
     logger/boost_logger.cpp
 )
 
-target_link_libraries(web_server http_server)
+target_link_libraries(web_server http_server app)

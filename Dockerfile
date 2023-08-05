@@ -22,20 +22,33 @@ COPY main.cpp /app/
 
 RUN cd /app/build && \
     cmake -DCMAKE_BUILD_TYPE=Release .. && \
-    cmake --build . -j6
+    cmake --build . -j12
 
 # Второй контейнер в том же докерфайле
 FROM ubuntu:22.04 as run
 
+# Создадим рабочую папку app и выставим права доступа
+RUN mkdir -p /app
+RUN chmod 777 -R /app
+
+# Установим python v3 и pip
+RUN apt update && apt install -y python3 python3-pip
+
 # Создадим пользователя admin
-RUN groupadd -r admin && useradd -r -g admin admin
+RUN groupadd -r admin && useradd -mrg admin admin
 USER admin
 
-# Скопируем приложение из сборочного контейнера в директорию /app.
+# Установим необходимые для скрипта модули
+RUN pip install docxcompose python-docx num-to-rus python-dateutil
+
+# Создадим папку для сформированных документов
+RUN mkdir -p /app/result
+ 
+# Скопируем приложение из сборочного контейнера в директорию /app
 COPY --from=build /app/build/bin/web_server /app/
 COPY --from=build /app/build/lib/* /app/
 COPY ./templates /app/templates
-COPY ./script /app/script
+COPY ./script/script.py /app/templates
 ENV LD_LIBRARY_PATH=/app/
 
 # Запускаем веб-сервер

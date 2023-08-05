@@ -1,3 +1,4 @@
+#include <fstream>
 #include "model.h"
 
 namespace model
@@ -41,6 +42,62 @@ void Config::AddField(Contract contract)
 Config::ContractsView Config::GetContracts() const noexcept
 {
     return ContractsView{&m_contracts};
+}
+
+ConfigLoader::ConfigLoader(Config& config) :
+    m_config(config)
+{
+}
+
+/**
+ * Загружает шаблон
+ * @param in json-шаблон
+ */
+void ConfigLoader::Load(std::ifstream& in)
+{
+    const std::string jsonString(std::istreambuf_iterator<char>{in}, {});
+    auto values = boost::json::parse(jsonString);
+
+    for (auto& value : values.as_object()) ///< contracts
+    {
+        m_config.AddField(LoadContract(value.value()));
+    }
+}
+
+/**
+ * Загружает контракты шаблона
+ * @param contract контракт
+ */
+Contract ConfigLoader::LoadContract(boost::json::value& contract)
+{
+    model::Contract result;
+    for (auto& value : contract.as_array()) ///< fields
+    {
+        result.AddContractField(LoadField(value));
+    }
+    return result;
+}
+
+/**
+ * Загружает поля контракта
+ * @field поле, включающее в себя поля key, tag и value
+ */
+ContractField ConfigLoader::LoadField(boost::json::value& field)
+{
+    model::ContractField result;
+    if (auto it = field.as_object().find("key"); it != field.as_object().end())
+    {
+        result.m_key = it->value().as_string();
+    }
+    if (auto it = field.as_object().find("tag"); it != field.as_object().end())
+    {
+        result.m_tag = it->value().as_string();
+    }
+    if (auto it = field.as_object().find("value"); it != field.as_object().end())
+    {
+        result.m_value = it->value().as_string();
+    }
+    return result;
 }
 
 } // namespace model

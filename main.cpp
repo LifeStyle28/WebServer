@@ -6,6 +6,8 @@
 #include <iostream>
 #include <thread>
 
+#include <fstream>
+#include "model.h"
 #include "logging_request_handler.h"
 #include "boost_logger.h"
 
@@ -59,7 +61,9 @@ int main(int argc, const char* argv[])
         });
 
         // 3. Создаем экземпляр приложения
-        model::Config config; // @TODO - сделать парсинг конфига, создать config.json
+        std::ifstream ifs("/app/templates/config.json");
+        model::Config config;
+        model::ConfigLoader(config).Load(ifs);
         app::Application app{config};
 
         // 4. Создаём обработчик HTTP-запросов

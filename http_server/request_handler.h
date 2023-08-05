@@ -26,7 +26,12 @@ public:
 
         try
         {
-            if (m_apiHandler.IsApiRequest(req))
+            if (m_apiHandler.IsCreateDocsRequest(req))
+            {
+                m_apiHandler.HandleJsonRecieve(req);
+                /// что сервер должен ответить?
+            }
+            else if (m_apiHandler.IsApiRequest(req))
             {
                 auto handle =
                 [self = shared_from_this(), send, req = std::forward<decltype(req)>(req), version, keepAlive]
@@ -45,7 +50,7 @@ public:
                 };
                 return net::dispatch(m_strand, handle);
             }
-            // принимаем respsonse произвольного типа для раскрытия варианта
+            // принимаем response произвольного типа для раскрытия варианта
             return std::visit(
                 [&send](auto&& response)
                 {
