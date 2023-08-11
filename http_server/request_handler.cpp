@@ -9,6 +9,7 @@ namespace http_handler
 using namespace std::literals;
 using namespace app;
 namespace sys = boost::system;
+namespace fs = std::filesystem;
 
 struct FileEndpoint
 {
@@ -16,8 +17,7 @@ struct FileEndpoint
     static constexpr std::string_view FILE_REQ = "/file/getfile"sv;
 };
 
-
-std::string_view get_mime_type(std::string_view path)
+static std::string_view get_mime_type(std::string_view path)
 {
     using beast::iequals;
     const auto ext = [&path]
@@ -116,11 +116,26 @@ std::string_view get_mime_type(std::string_view path)
     return ContentType::OCT_STREAM;
 }
 
-RequestHandler::RequestHandler(Application& app, Strand handlerStrand) :
-    m_strand{handlerStrand},
-    m_apiHandler{app}
+RequestHandler::RequestHandler(app::Application& app, fs::path configJsonPath,
+    fs::path scriptPath, Strand handlerStrand) :
+        m_apiHandler{app},
+        m_configJsonPath{configJsonPath},
+        m_scriptPath{scriptPath},
+        m_strand{handlerStrand}
 {
 }
+
+//@ TODO завернуть в strand и сделать через m_configJsonPath и m_scriptPath
+// static void start_script(const std::string& savePath, const std::string& jsonConfig)
+// {
+//     std::stringstream command;
+//     command << "python3 ";
+//     command << '\'' << "/app/templates/script.py" << '\'' << ' '; ///< binary file path
+//     command << '\'' << jsonConfig << '\'' << ' '; ///< json-string
+//     command << '\'' << savePath << '\''; ///< path for save
+//     std::system(command.str().c_str());
+//     std::system("tar -cvf /app/result/docs.tar /app/result");
+// }
 
 RequestHandler::FileRequestResult RequestHandler::HandleFileRequest(const StringRequest& req) const
 {
@@ -137,7 +152,8 @@ RequestHandler::FileRequestResult RequestHandler::HandleFileRequest(const String
         return builder.MakeBadRequestError("Invalid method"sv);
     }
 
-    const std::string path = "/app/result/docs.tar";
+    const std::string path = m_configJsonPath.string() + "docs.tar"; // @TODO сделать уникализацию имени std::mt19937_64
+    // start_script()?
     http::file_body::value_type body;
     beast::error_code ec;
     body.open(path.c_str(), beast::file_mode::read, ec);
@@ -159,8 +175,6 @@ RequestHandler::FileRequestResult RequestHandler::HandleFileRequest(const String
     return with_file_headers(FileResponse{std::piecewise_construct,
                                           std::make_tuple(std::move(body)),
                                           std::make_tuple(http::status::ok, req.version())});
-
-    return builder.MakeNotFoundError("Resource not found"sv);
 }
 
 StringResponse RequestHandler::ReportServerError(const size_t version, const bool keepAlive) const

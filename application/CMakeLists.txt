@@ -1,5 +1,8 @@
-add_library(app STATIC
+add_library(app SHARED
     application.cpp
     model.cpp
     use_cases.cpp
+    json_loader.cpp
 )
+
+target_link_libraries(app CONAN_PKG::boost)

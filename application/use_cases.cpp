@@ -3,14 +3,30 @@
 namespace app
 {
 
-BringFieldsUseCase::BringFieldsUseCase(const model::Config::ContractsView& contracts)
+BringTagValuesError::BringTagValuesError(Reason reason) :
+    std::runtime_error{"Failed to bring tag values"},
+    m_reason{reason}
 {
 }
 
-model::Contract::ContractFields BringFieldsUseCase::GetFields(
-    [[maybe_unused]] size_t index) const noexcept
+const BringTagValuesError::Reason& BringTagValuesError::GetReason() const
 {
-    return model::Contract::ContractFields();
+    return m_reason;
+}
+
+BringTagValuesUseCase::BringTagValuesUseCase(std::reference_wrapper<const model::Config> config) :
+    m_config{config.get()}
+{
+}
+
+const model::Contract::ContractTagValues& BringTagValuesUseCase::GetTagValues(const model::Contract::Id id) const
+{
+    const auto contractPtr{m_config.FindContractIndexBy(id)};
+    if (contractPtr)
+    {
+        return contractPtr->GetContractTagValues();
+    }
+    throw BringTagValuesError{BringTagValuesError::InvalidPointer{}};
 }
 
 } // namespace app

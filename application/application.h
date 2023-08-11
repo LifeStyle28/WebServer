@@ -9,9 +9,10 @@ class Application
 {
 public:
     Application(model::Config& config);
+    const model::Contract::ContractTagValues& GetTagValues(const model::Contract::Id id) const;
 private:
     model::Config& m_config;
-    BringFieldsUseCase m_bringFields{m_config.GetContracts()};
+    BringTagValuesUseCase m_bringTagValues{m_config};
 };
 
 } // namespace app

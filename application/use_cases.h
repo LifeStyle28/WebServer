@@ -2,15 +2,35 @@
 
 #include "model.h"
 
+#include <variant>
+
 namespace app
 {
 
-class BringFieldsUseCase
+class BringTagValuesError : public std::runtime_error
 {
 public:
-    BringFieldsUseCase(const model::Config::ContractsView& contracts);
-    model::Contract::ContractFields GetFields([[maybe_unused]] size_t index) const noexcept;
+    struct InvalidPointer
+    {
+    };
+    struct Dummy ///< для каких-либо будущих ошибок, чтобы заюзать вариант
+    {
+    };
+    using Reason = std::variant<InvalidPointer, Dummy>;
+
+    BringTagValuesError(Reason reason);
+    const Reason& GetReason() const;
 private:
+    Reason m_reason;
+};
+
+class BringTagValuesUseCase
+{
+public:
+    BringTagValuesUseCase(std::reference_wrapper<const model::Config> config);
+    const model::Contract::ContractTagValues& GetTagValues(const model::Contract::Id id) const;
+private:
+    const model::Config& m_config;
 };
 
 } // namespace app

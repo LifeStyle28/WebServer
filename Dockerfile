@@ -43,7 +43,7 @@ RUN pip install docxcompose python-docx num-to-rus python-dateutil
 
 # Создадим папку для сформированных документов
 RUN mkdir -p /app/result
- 
+
 # Скопируем приложение из сборочного контейнера в директорию /app
 COPY --from=build /app/build/bin/web_server /app/
 COPY --from=build /app/build/lib/* /app/
@@ -52,4 +52,4 @@ COPY ./script/script.py /app/templates
 ENV LD_LIBRARY_PATH=/app/
 
 # Запускаем веб-сервер
-ENTRYPOINT ["/app/web_server"]
+ENTRYPOINT ["/app/web_server", "--result-path", "/app/result/", "--config-file", "/app/templates/config.json", "-s", "/app/script/script.py"]

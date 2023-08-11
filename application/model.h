@@ -1,17 +1,17 @@
 #pragma once
 
+#include "tagged.h"
+
 #include <vector>
-#include <memory>
 #include <string_view>
+#include <unordered_map>
 
 #include <boost/iterator/indirect_iterator.hpp>
-#include <boost/json/object.hpp>
-#include <boost/json/parse.hpp>
 
 namespace model
 {
 
-struct ContractField
+struct ContractTagValue
 {
     std::string m_key;
     std::string m_tag;
@@ -21,50 +21,37 @@ struct ContractField
 class Contract
 {
 public:
-    using ContractFields = std::vector<ContractField>;
+    using Id = util::Tagged<std::string, Contract>;
+    using DocumentsNumbers = std::vector<size_t>;
+    using ContractTagValues = std::vector<ContractTagValue>;
 
-    Contract() = default;
-    void AddContractField(ContractField contractField);
-    ContractFields GetContractFields() const noexcept;
+    Contract(Id id);
+    void AddContractTagValue(ContractTagValue contractField);
+    void AddDocNum(const size_t num);
+    Id GetId() const noexcept;
+    const DocumentsNumbers& GetDocumentsNumbers() const noexcept;
+    const ContractTagValues& GetContractTagValues() const noexcept;
 private:
-    ContractFields m_contractFields;
+    Id m_id;
+    DocumentsNumbers m_docsNums;
+    ContractTagValues m_contractFields;
 };
 
 class Config
 {
     using ContractsStorage = std::vector<std::unique_ptr<Contract>>;
+    using ContractIdHasher = util::TaggedHasher<Contract::Id>;
+    using ContractIdToIndex = std::unordered_map<Contract::Id, size_t, ContractIdHasher>;
 public:
-    class ContractsView
-    {
-    public:
-        using StoragePtr = const ContractsStorage*;
-        using Iterator = boost::indirect_iterator<ContractsStorage::const_iterator>; ///< позволяет итерироваться по контейнеру указателей
-
-        explicit ContractsView(StoragePtr storage) noexcept;
-        size_t Size() const noexcept;
-        Iterator begin() const noexcept; ///< для range based for
-        Iterator end() const noexcept; ///< для range based for
-    private:
-        StoragePtr m_storage;
-    };
-
     Config() = default;
+    Config(Config&& other) noexcept(false); ///< т.к. имеем unique_ptr
+    Config& operator=(Config&& rhs) noexcept(false); ///< т.к. имеем unique_ptr
     ~Config() = default;
-    void AddField(Contract contract);
-    ContractsView GetContracts() const noexcept;
+    void AddContract(Contract contract);
+    Contract* FindContractIndexBy(const Contract::Id id) const noexcept;
 private:
     ContractsStorage m_contracts;
-};
-
-class ConfigLoader
-{
-public:
-    ConfigLoader(Config& config);
-    void Load(std::ifstream& in); ///< загружает шаблон
-private:
-    Contract LoadContract(boost::json::value& contract); ///< загружает контракты шаблона
-    ContractField LoadField(boost::json::value& field); ///< загружает поля контракта
-    Config& m_config;
+    ContractIdToIndex m_contractIdToIndex;
 };
 
 } // namespace model

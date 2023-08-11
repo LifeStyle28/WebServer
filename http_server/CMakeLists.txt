@@ -8,4 +8,4 @@ add_library(http_server SHARED
 )
 
 target_include_directories(http_server PUBLIC ${CMAKE_SOURCE_DIR}/application)
-target_link_libraries(http_server PUBLIC app CONAN_PKG::boost)
+target_link_libraries(http_server app log CONAN_PKG::boost)

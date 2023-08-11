@@ -1,12 +1,11 @@
 #include "api_handler.h"
+#include "response_builder.h"
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/json/parse.hpp>
 #include <boost/json/serialize.hpp>
 #include <boost/json/value.hpp>
 #include <cstdlib>
-
-#include "response_builder.h"
 
 namespace http_handler
 {
@@ -19,55 +18,54 @@ namespace
 
 using namespace std::literals;
 
+static std::string json_val_as_string(const json::value& val)
+{
+    return std::string(val.as_string());
+}
+
 struct Endpoint
 {
     Endpoint() = delete;
     static constexpr std::string_view API_PREFIX = "/api/"sv;
-    static constexpr std::string_view FIELDS = "/api/v1/prog/fields"sv;
-    static constexpr std::string_view FILE = "/api/v1/prog/file"sv;
+    static constexpr std::string_view TAG_VALUES = "/api/v1/prog/tag_values"sv;
 };
 
 struct CacheControl
 {
     CacheControl() = delete;
-    constexpr static std::string_view NO_CACHE = "no-cache"sv;
+    static constexpr std::string_view NO_CACHE = "no-cache"sv;
 };
-
-std::string AsString(const json::value& val)
-{
-    return std::string(val.as_string());
-}
 
 struct ErrorKey
 {
     ErrorKey() = delete;
-    constexpr static boost::string_view CODE_KEY{"code"};
-    constexpr static boost::string_view MESSAGE_KEY{"message"};
+    static constexpr boost::string_view CODE_KEY{"code"};
+    static constexpr boost::string_view MESSAGE_KEY{"message"};
 };
 
-std::string MakeErrorJSON(std::string code, std::string message)
+static std::string MakeErrorJSON(std::string code, std::string message)
 {
     return json::serialize(json::object{{ErrorKey::CODE_KEY, std::move(code)},
         {ErrorKey::MESSAGE_KEY, std::move(message)}});
 }
 
-struct FieldsRequest
+struct TagValuesRequest
 {
     std::string contractType;
     std::string currencyType;
     std::string currencyKind;
 
-    constexpr static json::string_view CONTRACT_TYPE = "contractType";
-    constexpr static json::string_view CURRENCY_TYPE = "currencyType";
-    constexpr static json::string_view CURRENCY_KIND = "currencyKind";
+    static constexpr json::string_view CONTRACT_TYPE = "contractType";
+    static constexpr json::string_view CURRENCY_TYPE = "currencyType";
+    static constexpr json::string_view CURRENCY_KIND = "currencyKind";
 };
 
-struct FieldsResponse
+struct TagValuesResponse
 {
-    FieldsResponse() = delete;
-    constexpr static json::string_view FIELD_KEY = "fieldKey";
-    constexpr static json::string_view FIELD_VALUE = "fieldValue";
-    constexpr static json::string_view TAG = "tag";
+    TagValuesResponse() = delete;
+    static constexpr json::string_view KEY = "key";
+    static constexpr json::string_view TAG = "tag";
+    static constexpr json::string_view VALUE = "value";
 };
 
 struct BadRequestErrorCode
@@ -141,6 +139,63 @@ private:
     std::vector<http::verb> m_allowedMethods;
 };
 
+static TagValuesRequest parse_tag_values_request(boost::string_view body)
+{
+    try
+    {
+        const auto reqJson = json::parse(body);
+        const auto& obj = reqJson.as_object();
+
+        return
+        {
+            json_val_as_string(obj.at(TagValuesRequest::CONTRACT_TYPE)),
+            json_val_as_string(obj.at(TagValuesRequest::CURRENCY_TYPE)),
+            json_val_as_string(obj.at(TagValuesRequest::CURRENCY_KIND))
+        };
+    }
+    catch (const std::out_of_range& e)
+    {
+        throw BadRequest(BadRequestErrorCode::INVALID_ARGUMENT,
+            "Tag values request parse error: "s + e.what());
+    }
+    catch (const boost::system::system_error& e)
+    {
+        throw BadRequest(BadRequestErrorCode::INVALID_ARGUMENT,
+            "Tag values request parse error: "s + e.what());
+    }
+}
+
+static json::array tag_values_to_json(const model::Contract::ContractTagValues& tagValues)
+{
+    json::array tagValuesArr;
+    for (const auto& tagValue : tagValues)
+    {
+        json::object obj{{TagValuesResponse::KEY, tagValue.m_key}, {TagValuesResponse::TAG, tagValue.m_tag},
+            {TagValuesResponse::VALUE, tagValue.m_value}};
+        tagValuesArr.emplace_back(obj);
+    }
+    return tagValuesArr;
+}
+
+struct BringTagValuesErrorReporter
+{
+    StringResponse operator()(const app::BringTagValuesError::InvalidPointer&) const
+    {
+        return m_builder.MakeJSONResponse(
+            MakeErrorJSON(BadRequestErrorCode::INVALID_ARGUMENT, "Contract not found"s), // @TODO придумать новый тип ошибки?
+            http::status::not_found);
+    }
+
+    StringResponse operator()(const app::BringTagValuesError::Dummy&) const
+    {
+        return m_builder.MakeJSONResponse(
+            MakeErrorJSON(BadRequestErrorCode::INVALID_ARGUMENT, "Dummy"s),
+            http::status::bad_request);
+    }
+
+    const ResponseBuilder& m_builder;
+};
+
 class RequestHandlingContext
 {
 public:
@@ -167,9 +222,9 @@ private:
         try
         {
             const auto target = m_request.target();
-            if (target == Endpoint::FIELDS)
+            if (target == Endpoint::TAG_VALUES)
             {
-                return FieldsReqHandle();
+                return TagValuesReqHandle();
             }
             throw BadRequest("badRequest"s, "Invalid endpoint"s);
         }
@@ -194,13 +249,23 @@ private:
         }
     }
 
-    StringResponse FieldsReqHandle() const
+    StringResponse TagValuesReqHandle() const
     {
         EnsureMethod(http::verb::get);
+        EnsureJsonContentType();
 
-        json::array fieldsArr;
-        const auto json = json::serialize(fieldsArr);
-        return m_builder.MakeJSONResponse(json);
+        try
+        {
+            const auto tagValuesReq{parse_tag_values_request(m_request.body())};
+            const auto& tagValues{m_app.GetTagValues(model::Contract::Id(tagValuesReq.contractType + '_'
+                + tagValuesReq.currencyType + '_' + tagValuesReq.currencyKind))};
+
+            return m_builder.MakeJSONResponse(json::serialize(tag_values_to_json(tagValues)));
+        }
+        catch (const app::BringTagValuesError& e)
+        {
+            return std::visit(BringTagValuesErrorReporter{m_builder}, e.GetReason());
+        }
     }
 
     void EnsureJsonContentType() const
@@ -241,45 +306,10 @@ bool ApiHandler::IsApiRequest(const StringRequest& request) const
     return request.target().starts_with(Endpoint::API_PREFIX);
 }
 
-/**
- * Проверяет отправляет ли клиент сформированный json-шаблон для генерации документов
- * @param request запрос
- */
-bool ApiHandler::IsCreateDocsRequest(const StringRequest& request) const
-{
-    return request.target() == (Endpoint::FILE);
-}
-
 StringResponse ApiHandler::HandleApiRequest(const StringRequest& request)
 {
     RequestHandlingContext ctx(request, m_app);
     return ctx.Handle();
-}
-
-/**
- * Получает json-строку и формирует документы
- * @param request запрос
- */
-void ApiHandler::HandleJsonRecieve(const StringRequest& request)
-{
-    const std::string jsonConfig(request.body());
-    StartScript("/app/result/", jsonConfig);
-}
-
-/**
- * Запускает скрипт
- * @param savePath путь для сохранения сгенерированных документов
- * @param jsonConfig json-шаблон с полями документов
- */
-void ApiHandler::StartScript(const std::string& savePath, const std::string& jsonConfig)
-{
-    std::stringstream command;
-    command << "python3 ";
-    command << '\'' << "/app/templates/script.py" << '\'' << ' '; ///< binary file path
-    command << '\'' << jsonConfig << '\'' << ' '; ///< json-string
-    command << '\'' << savePath << '\''; ///< path for save
-    std::system(command.str().c_str());
-    std::system("tar -cvf /app/result/docs.tar /app/result");
 }
 
 } // namespace http_handler

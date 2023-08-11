@@ -1,103 +1,91 @@
-#include <fstream>
 #include "model.h"
+
+#include <boost/scope_exit.hpp>
+
+#include <iostream>
 
 namespace model
 {
 
-void Contract::AddContractField(ContractField contractField)
+using namespace std::literals;
+
+Contract::Contract(Id id) :
+    m_id{id}
+{
+}
+
+void Contract::AddContractTagValue(ContractTagValue contractField)
 {
     m_contractFields.emplace_back(std::move(contractField));
 }
 
-Contract::ContractFields Contract::GetContractFields() const noexcept
+void Contract::AddDocNum(const size_t num)
+{
+    m_docsNums.emplace_back(num);
+}
+
+Contract::Id Contract::GetId() const noexcept
+{
+    return m_id;
+}
+
+const Contract::DocumentsNumbers& Contract::GetDocumentsNumbers() const noexcept
+{
+    return m_docsNums;
+}
+
+const Contract::ContractTagValues& Contract::GetContractTagValues() const noexcept
 {
     return m_contractFields;
 }
 
-Config::ContractsView::ContractsView(Config::ContractsView::StoragePtr storage) noexcept :
-    m_storage{storage}
+Config::Config(Config&& other) noexcept(false) :
+    m_contracts{std::move(other.m_contracts)},
+    m_contractIdToIndex{std::move(other.m_contractIdToIndex)}
 {
+    other.m_contracts.clear();
+    other.m_contractIdToIndex.clear();
 }
 
-size_t Config::ContractsView::Size() const noexcept
+Config& Config::operator=(Config&& rhs) noexcept(false)
 {
-    return m_storage->size();
+    m_contracts.swap(rhs.m_contracts);
+    m_contractIdToIndex.swap(rhs.m_contractIdToIndex);
+    return *this;
 }
 
-Config::ContractsView::Iterator Config::ContractsView::begin() const noexcept
+void Config::AddContract(Contract contract)
 {
-    return m_storage->begin();
-}
-
-Config::ContractsView::Iterator Config::ContractsView::end() const noexcept
-{
-    return m_storage->end();
-}
-
-void Config::AddField(Contract contract)
-{
-    m_contracts.emplace_back(std::make_unique<Contract>(std::move(contract)));
-}
-
-Config::ContractsView Config::GetContracts() const noexcept
-{
-    return ContractsView{&m_contracts};
-}
-
-ConfigLoader::ConfigLoader(Config& config) :
-    m_config(config)
-{
-}
-
-/**
- * Загружает шаблон
- * @param in json-шаблон
- */
-void ConfigLoader::Load(std::ifstream& in)
-{
-    const std::string jsonString(std::istreambuf_iterator<char>{in}, {});
-    auto values = boost::json::parse(jsonString);
-
-    for (auto& value : values.as_object()) ///< contracts
+    const size_t index{m_contracts.size()};
+    if (auto [it, inserted] = m_contractIdToIndex.emplace(contract.GetId(), index); !inserted)
     {
-        m_config.AddField(LoadContract(value.value()));
+        throw std::invalid_argument{"Contract with id "s + *contract.GetId() + " already exists"s};
+    }
+    else
+    {
+        // Захватим весь скоуп, чтобы, если что удалить контракт из хеш-мапы.
+        // Вроде с С++11 работает, сработает при выходе из else, а так же при выбросе исключения
+        bool commit = false;
+        BOOST_SCOPE_EXIT_ALL(&commit, it, this)
+        {
+            if (!commit)
+            {
+                m_contractIdToIndex.erase(it);
+            }
+        };
+
+        m_contracts.emplace_back(std::make_unique<Contract>(std::move(contract)));
+        commit = true;
     }
 }
 
-/**
- * Загружает контракты шаблона
- * @param contract контракт
- */
-Contract ConfigLoader::LoadContract(boost::json::value& contract)
+Contract* Config::FindContractIndexBy(const Contract::Id id) const noexcept
 {
-    model::Contract result;
-    for (auto& value : contract.as_array()) ///< fields
+    if (auto it = m_contractIdToIndex.find(id); it != m_contractIdToIndex.end())
     {
-        result.AddContractField(LoadField(value));
+        return m_contracts.at(it->second).get();
     }
-    return result;
-}
-
-/**
- * Загружает поля контракта
- * @field поле, включающее в себя поля key, tag и value
- */
-ContractField ConfigLoader::LoadField(boost::json::value& field)
-{
-    model::ContractField result;
-    if (auto it = field.as_object().find("key"); it != field.as_object().end())
-    {
-        result.m_key = it->value().as_string();
-    }
-    if (auto it = field.as_object().find("tag"); it != field.as_object().end())
-    {
-        result.m_tag = it->value().as_string();
-    }
-    if (auto it = field.as_object().find("value"); it != field.as_object().end())
-    {
-        result.m_value = it->value().as_string();
-    }
-    return result;
+    return nullptr;
 }
 
 } // namespace model
