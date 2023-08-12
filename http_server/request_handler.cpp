@@ -2,6 +2,7 @@
 #include "response_builder.h"
 
 #include <boost/format.hpp>
+#include <random>
 
 namespace http_handler
 {
@@ -127,15 +128,24 @@ RequestHandler::RequestHandler(app::Application& app, fs::path configJsonPath,
 }
 
 //@ TODO завернуть в strand и сделать через m_resultPath и m_scriptPath
+//@ TODO разделить на несколько функций/методов
 static void start_script(const std::string& savePath, const std::string& jsonConfig, const std::string& scriptPath)
 {
+    /// создание папки для результатов
     std::stringstream command;
+    command << "mkdir -p ";
+    command << savePath;
+    std::system(command.str().c_str());
+
+    /// вызов скрипта
+    command.str("");
     command << "python3 ";
     command << '\'' << scriptPath << '\'' << ' '; ///< script path
     command << '\'' << jsonConfig << '\'' << ' '; ///< json-string
     command << '\'' << savePath << '\''; ///< path for save
     std::system(command.str().c_str());
 
+    /// упаковка документов в архив
     command.str("");
     command << "tar -cvf ";
     command << savePath;
@@ -159,8 +169,11 @@ RequestHandler::FileRequestResult RequestHandler::HandleFileRequest(const String
         return builder.MakeBadRequestError("Invalid method"sv);
     }
 
-    const std::string path = static_cast<std::string>(m_resultPath) + "docs.tar"; // @TODO сделать уникализацию имени std::mt19937_64
-    start_script(m_resultPath, req.body(), m_scriptPath);
+    std::mt19937_64 randomizer{};
+    const std::string folderName(std::to_string(randomizer())); ///< название сгенерированной папки
+    const std::string generatedFolderPath(static_cast<std::string>(m_resultPath) + folderName + "/"); ///< полный путь сгенерированной папки
+    const std::string path = generatedFolderPath + "/docs.tar";
+    start_script(generatedFolderPath, req.body(), m_scriptPath);
     http::file_body::value_type body;
     beast::error_code ec;
     body.open(path.c_str(), beast::file_mode::read, ec);
