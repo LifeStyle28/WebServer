@@ -117,25 +117,32 @@ static std::string_view get_mime_type(std::string_view path)
 }
 
 RequestHandler::RequestHandler(app::Application& app, fs::path configJsonPath,
-    fs::path scriptPath, Strand handlerStrand) :
+    fs::path scriptPath, std::filesystem::path resultPath, Strand handlerStrand) :
         m_apiHandler{app},
         m_configJsonPath{configJsonPath},
         m_scriptPath{scriptPath},
+        m_resultPath{resultPath},
         m_strand{handlerStrand}
 {
 }
 
-//@ TODO завернуть в strand и сделать через m_configJsonPath и m_scriptPath
-// static void start_script(const std::string& savePath, const std::string& jsonConfig)
-// {
-//     std::stringstream command;
-//     command << "python3 ";
-//     command << '\'' << "/app/templates/script.py" << '\'' << ' '; ///< binary file path
-//     command << '\'' << jsonConfig << '\'' << ' '; ///< json-string
-//     command << '\'' << savePath << '\''; ///< path for save
-//     std::system(command.str().c_str());
-//     std::system("tar -cvf /app/result/docs.tar /app/result");
-// }
+//@ TODO завернуть в strand и сделать через m_resultPath и m_scriptPath
+static void start_script(const std::string& savePath, const std::string& jsonConfig, const std::string& scriptPath)
+{
+    std::stringstream command;
+    command << "python3 ";
+    command << '\'' << scriptPath << '\'' << ' '; ///< script path
+    command << '\'' << jsonConfig << '\'' << ' '; ///< json-string
+    command << '\'' << savePath << '\''; ///< path for save
+    std::system(command.str().c_str());
+
+    command.str("");
+    command << "tar -cvf ";
+    command << savePath;
+    command << "docs.tar ";
+    command << savePath;
+    std::system(command.str().c_str());
+}
 
 RequestHandler::FileRequestResult RequestHandler::HandleFileRequest(const StringRequest& req) const
 {
@@ -152,8 +159,8 @@ RequestHandler::FileRequestResult RequestHandler::HandleFileRequest(const String
         return builder.MakeBadRequestError("Invalid method"sv);
     }
 
-    const std::string path = m_configJsonPath.string() + "docs.tar"; // @TODO сделать уникализацию имени std::mt19937_64
-    // start_script()?
+    const std::string path = static_cast<std::string>(m_resultPath) + "docs.tar"; // @TODO сделать уникализацию имени std::mt19937_64
+    start_script(m_resultPath, req.body(), m_scriptPath);
     http::file_body::value_type body;
     beast::error_code ec;
     body.open(path.c_str(), beast::file_mode::read, ec);

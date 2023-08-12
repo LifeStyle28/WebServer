@@ -155,11 +155,11 @@ def get_docs_nums(data): # Получим номера нужных докуме
 def get_table_need_values(data):
         for entry in data["tag_values"]:
                 if entry["tag"] == "@<SUMM_NUMBER>@":
-                        loan_sum = int(entry["def_value"])
+                        loan_sum = int(entry["key"])
                 elif entry["tag"] == "@<PERCENT_NUMBER>@":
-                        perc = int(entry["def_value"])
+                        perc = int(entry["key"])
                 elif entry["tag"] == "@<DATE>@":
-                        date = entry["def_value"]
+                        date = entry["key"]
         return loan_sum, perc, date
 
 def tables_replace_text(document, regex, new_value):
@@ -189,9 +189,9 @@ if __name__ == "__main__":
         print("Arg[2] =", str(sys.argv[2]))
 
         error_status = 0
-        #with open(str(sys.argv[1]), encoding="utf8") as json_file: # открываем json-шаблон
-        #data = json.load(json_file)
         data = json.loads(str(sys.argv[1]))
+        data = data["contracts"][0]
+
         doc_nums = get_docs_nums(data)
 
         for i in doc_nums:
@@ -204,7 +204,7 @@ if __name__ == "__main__":
                                         regex = re.compile(entry[curr])
                                         if entry[curr] == "@<SUMM_NUMBER>@":
                                             new_value = space_num(int(new_value)) # если это сумма договора, то разделяем пробелами
-                                elif curr == "def_value":
+                                elif curr == "key":
                                         new_value = entry[curr]
                         for paragraph in document.paragraphs:
                                 paragraph_replace_text(paragraph, regex, new_value)

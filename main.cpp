@@ -141,12 +141,13 @@ int main(int argc, const char* argv[])
         app::Application app{config};
         std::filesystem::path configJsonPath{args->m_configJsonPath};
         std::filesystem::path scriptPath{args->m_scriptPath};
+        std::filesystem::path resultPath{args->m_resultPath};
 
         // 4. Создаём обработчик HTTP-запросов
         auto handlerStrand = net::make_strand(ioc);
 
         auto handler = std::make_shared<http_handler::RequestHandler>(app, std::move(configJsonPath),
-            std::move(scriptPath), handlerStrand);
+            std::move(scriptPath), std::move(resultPath), handlerStrand);
         logging_handler::LoggingRequestHandler<http_handler::RequestHandler> log_handler{*handler};
 
         // 5. Запустить обработчик HTTP-запросов, делегируя их обработчику запросов
