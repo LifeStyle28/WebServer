@@ -1,16 +1,19 @@
 #include "request_handler.h"
 #include "response_builder.h"
 
-#include <boost/format.hpp>
-#include <random>
+#include <charconv>
+#include <optional>
 
-namespace http_handler
-{
+#include <boost/format.hpp>
+
+namespace http_handler {
 
 using namespace std::literals;
 using namespace app;
 namespace sys = boost::system;
 namespace fs = std::filesystem;
+
+constexpr std::string_view INDEX_HTML = "index.html"sv;
 
 struct FileEndpoint
 {
@@ -21,8 +24,7 @@ struct FileEndpoint
 static std::string_view get_mime_type(std::string_view path)
 {
     using beast::iequals;
-    const auto ext = [&path]
-    {
+    const auto ext = [&path] {
         auto const pos = path.rfind('.');
         if (pos == std::string_view::npos)
         {
@@ -117,51 +119,90 @@ static std::string_view get_mime_type(std::string_view path)
     return ContentType::OCT_STREAM;
 }
 
-RequestHandler::RequestHandler(app::Application& app, fs::path configJsonPath,
-    fs::path scriptPath, std::filesystem::path resultPath, Strand handlerStrand) :
-        m_apiHandler{app},
-        m_configJsonPath{configJsonPath},
-        m_scriptPath{scriptPath},
-        m_resultPath{resultPath},
-        m_strand{handlerStrand}
+RequestHandler::RequestHandler(app::Application& app, fs::path resultPath, Strand handlerStrand) :
+    m_apiHandler{app}, m_resultPath{resultPath}, m_strand{handlerStrand}
 {
 }
 
-//@ TODO завернуть в strand и сделать через m_resultPath и m_scriptPath
-//@ TODO разделить на несколько функций/методов
-static void start_script(const std::string& savePath, const std::string& jsonConfig, const std::string& scriptPath)
+static std::optional<std::string> decode_path(std::string_view target)
 {
-    /// создание папки для результатов
-    std::stringstream command;
-    command << "mkdir -p ";
-    command << savePath;
-    std::system(command.str().c_str());
+    std::string result;
+    result.reserve(target.size());
 
-    /// вызов скрипта
-    command.str("");
-    command << "python3 ";
-    command << '\'' << scriptPath << '\'' << ' '; ///< script path
-    command << '\'' << jsonConfig << '\'' << ' '; ///< json-string
-    command << '\'' << savePath << '\''; ///< path for save
-    std::system(command.str().c_str());
+    std::string_view::iterator it = target.begin();
+    while (it != target.end())
+    {
+        if (*it == '+')
+        {
+            result.push_back(' ');
+        }
+        else if (*it == '%')
+        {
+            if (std::next(it) == target.end() || std::next(std::next(it)) == target.end())
+            {
+                return std::nullopt;
+            }
+            if (char value; std::from_chars(it + 1, it + 2, value, 16).ec == std::errc{})
+            {
+                result.push_back(value);
+            }
+            else
+            {
+                return std::nullopt;
+            }
+            it += 2;
+        }
+        else
+        {
+            result.push_back(*it);
+        }
+        ++it;
+    }
 
-    /// упаковка документов в архив
-    command.str("");
-    command << "tar -cvf ";
-    command << savePath;
-    command << "docs.tar ";
-    command << savePath;
-    std::system(command.str().c_str());
+    return result;
+}
+
+static bool is_sub_path(fs::path path, fs::path base)
+{
+    // Приводим оба пути к каноничному виду (без . и ..)
+    path = fs::weakly_canonical(path);
+    base = fs::weakly_canonical(base);
+
+    // Проверяем, что все компоненты base содержатся внутри path
+    for (auto b = base.begin(), p = path.begin(); b != base.end(); ++b, ++p)
+    {
+        if (p == path.end() || *p != *b)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+static std::optional<fs::path> make_absolute_path(fs::path base, std::string_view path)
+{
+    try
+    {
+        fs::path fs_path{path.begin(), path.end()};
+        fs_path = fs_path.lexically_relative("/");
+        auto abs_path = base / fs_path;
+        if (fs::is_directory(abs_path))
+        {
+            abs_path /= INDEX_HTML;
+            abs_path = fs::weakly_canonical(abs_path);
+        }
+
+        return abs_path;
+    }
+    catch (...)
+    {
+        return std::nullopt;
+    }
 }
 
 RequestHandler::FileRequestResult RequestHandler::HandleFileRequest(const StringRequest& req) const
 {
     ResponseBuilder builder{req.version(), req.keep_alive()};
-
-    if (req.target() != FileEndpoint::FILE_REQ)
-    {
-        return builder.MakeBadRequestError("Invalid URL");
-    }
 
     const auto method = req.method();
     if (method != http::verb::head && method != http::verb::get)
@@ -169,32 +210,52 @@ RequestHandler::FileRequestResult RequestHandler::HandleFileRequest(const String
         return builder.MakeBadRequestError("Invalid method"sv);
     }
 
-    std::mt19937_64 randomizer{};
-    const std::string folderName(std::to_string(randomizer())); ///< название сгенерированной папки
-    const std::string generatedFolderPath(static_cast<std::string>(m_resultPath) + folderName + "/"); ///< полный путь сгенерированной папки
-    const std::string path = generatedFolderPath + "/docs.tar";
-    start_script(generatedFolderPath, req.body(), m_scriptPath);
-    http::file_body::value_type body;
-    beast::error_code ec;
-    body.open(path.c_str(), beast::file_mode::read, ec);
-
-    if (ec)
+    const auto target = decode_path(req.target());
+    if (!target)
     {
-        return builder.FromErrorCode(ec);
+        return builder.MakeBadRequestError("Invalid URL");
     }
+    assert(!target->empty() && target->front() == '/');
 
-    const auto size{body.size()};
-    auto with_file_headers = [&path, size, &req](auto&& response)
+    if (auto opt = make_absolute_path(m_resultPath, *target))
     {
-        response.set(http::field::content_type, get_mime_type(path));
-        response.content_length(size);
-        response.keep_alive(req.keep_alive());
-        return std::move(response);
-    };
+        if (!is_sub_path(*opt, m_resultPath))
+        {
+            return builder.MakeBadRequestError("Invalid URL");
+        }
 
-    return with_file_headers(FileResponse{std::piecewise_construct,
-                                          std::make_tuple(std::move(body)),
-                                          std::make_tuple(http::status::ok, req.version())});
+        const auto pathStr = opt->string();
+        http::file_body::value_type body;
+        beast::error_code ec;
+        body.open(pathStr.c_str(), beast::file_mode::read, ec);
+        if (ec)
+        {
+            return builder.FromErrorCode(ec);
+        }
+
+        const auto size = body.size();
+
+        auto with_file_headers = [&pathStr, size, &req](auto&& response)
+        {
+            response.set(http::field::content_type, get_mime_type(pathStr));
+            response.content_length(size);
+            response.keep_alive(req.keep_alive());
+            return std::move(response);
+        };
+
+        if (method == http::verb::head)
+        {
+            return with_file_headers(EmptyResponse{http::status::ok, req.version()});
+        }
+
+        return with_file_headers(FileResponse{std::piecewise_construct,
+            std::make_tuple(std::move(body)), std::make_tuple(http::status::ok, req.version())});
+    }
+    else
+    {
+        return builder.MakeNotFoundError(
+            (boost::format("Resource %1% not found"s) % *target).str());
+    }
 }
 
 StringResponse RequestHandler::ReportServerError(const size_t version, const bool keepAlive) const

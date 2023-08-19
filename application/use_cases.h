@@ -3,6 +3,7 @@
 #include "model.h"
 
 #include <variant>
+#include <filesystem>
 
 namespace app
 {
@@ -31,6 +32,16 @@ public:
     const model::Contract::ContractTagValues& GetTagValues(const model::Contract::Id id) const;
 private:
     const model::Config& m_config;
+};
+
+class CreateResultFileUseCase
+{
+public:
+    CreateResultFileUseCase(std::filesystem::path scriptPath, std::filesystem::path resultPath);
+    std::string CreateFile(const std::string& body) const;
+private:
+    std::filesystem::path m_scriptPath;
+    std::filesystem::path m_resultPath;
 };
 
 } // namespace app

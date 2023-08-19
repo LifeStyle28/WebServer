@@ -17,6 +17,9 @@ RUN mkdir /app/build && cd /app/build && \
 COPY ./application /app/application
 COPY ./http_server /app/http_server
 COPY ./logger /app/logger
+COPY ./templates /app/templates
+COPY ./script /app/script
+COPY ./result /app/result
 COPY CMakeLists.txt /app/
 COPY main.cpp /app/
 
@@ -41,15 +44,9 @@ USER admin
 # Установим необходимые для скрипта модули
 RUN pip install docxcompose python-docx num-to-rus python-dateutil
 
-# Создадим папки для сформированных документов и скрипта
-RUN mkdir -p /app/result
-RUN mkdir -p /app/script
-
 # Скопируем приложение из сборочного контейнера в директорию /app
 COPY --from=build /app/build/bin/web_server /app/
 COPY --from=build /app/build/lib/* /app/
-COPY ./templates /app/templates
-COPY ./script/script.py /app/script/
 ENV LD_LIBRARY_PATH=/app/
 
 # Запускаем веб-сервер

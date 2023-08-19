@@ -18,6 +18,7 @@ namespace
 
 using namespace std::literals;
 
+// @TODO - не нравится дублирование этой функции в разных файлах
 static std::string json_val_as_string(const json::value& val)
 {
     return std::string(val.as_string());
@@ -28,6 +29,7 @@ struct Endpoint
     Endpoint() = delete;
     static constexpr std::string_view API_PREFIX = "/api/"sv;
     static constexpr std::string_view TAG_VALUES = "/api/v1/prog/tag_values"sv;
+    static constexpr std::string_view FILLED_CONTENT = "/api/v1/prog/filled_content"sv;
 };
 
 struct CacheControl
@@ -66,6 +68,12 @@ struct TagValuesResponse
     static constexpr json::string_view KEY = "key";
     static constexpr json::string_view TAG = "tag";
     static constexpr json::string_view VALUE = "value";
+};
+
+struct FilledContentResponse
+{
+    FilledContentResponse() = delete;
+    static constexpr json::string_view FILE_NAME = "fileName";
 };
 
 struct BadRequestErrorCode
@@ -226,6 +234,10 @@ private:
             {
                 return TagValuesReqHandle();
             }
+            else if (target == Endpoint::FILLED_CONTENT)
+            {
+                return FilledContentHandle();
+            }
             throw BadRequest("badRequest"s, "Invalid endpoint"s);
         }
         catch (const MethodNotAllowed& e)
@@ -265,6 +277,24 @@ private:
         catch (const app::BringTagValuesError& e)
         {
             return std::visit(BringTagValuesErrorReporter{m_builder}, e.GetReason());
+        }
+    }
+
+    StringResponse FilledContentHandle() const
+    {
+        EnsureMethod(http::verb::get);
+        EnsureJsonContentType();
+
+        try
+        {
+            const auto fileName{m_app.GetResultFileName(m_request.body())};
+            json::object obj{{FilledContentResponse::FILE_NAME, fileName}};
+            return m_builder.MakeJSONResponse(json::serialize(obj));
+        }
+        catch (const std::runtime_error& e)
+        {
+            // @TODO !!! - пробросить нормальные исключение, написать нормальные описания для них
+            throw BadRequest("badRequest"s, e.what());
         }
     }
 
