@@ -17,9 +17,6 @@ RUN mkdir /app/build && cd /app/build && \
 COPY ./application /app/application
 COPY ./http_server /app/http_server
 COPY ./logger /app/logger
-COPY ./templates /app/templates
-COPY ./script /app/script
-COPY ./result /app/result
 COPY CMakeLists.txt /app/
 COPY main.cpp /app/
 
@@ -33,6 +30,7 @@ FROM ubuntu:22.04 as run
 # Создадим рабочую папку app и выставим права доступа
 RUN mkdir -p /app
 RUN chmod 777 -R /app
+RUN mkdir /app/templates && mkdir /app/result && mkdir /app/script
 
 # Установим python v3 и pip
 RUN apt update && apt install -y python3 python3-pip
@@ -47,6 +45,9 @@ RUN pip install docxcompose python-docx num-to-rus python-dateutil
 # Скопируем приложение из сборочного контейнера в директорию /app
 COPY --from=build /app/build/bin/web_server /app/
 COPY --from=build /app/build/lib/* /app/
+COPY ./templates /app/templates
+COPY ./script /app/script
+COPY ./result /app/result
 ENV LD_LIBRARY_PATH=/app/
 
 # Запускаем веб-сервер
