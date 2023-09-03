@@ -47,7 +47,7 @@ COPY --from=build /app/build/bin/web_server /app/
 COPY --from=build /app/build/lib/* /app/
 COPY ./templates /app/templates
 COPY ./script /app/script
-COPY ./result /app/result
+COPY ./web /app/web
 ENV LD_LIBRARY_PATH=/app/
 
 # Запускаем веб-сервер

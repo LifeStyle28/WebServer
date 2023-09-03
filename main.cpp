@@ -139,13 +139,13 @@ int main(int argc, const char* argv[])
         // 3. Создаем экземпляр приложения
         model::Config config{json_loader::load_config(args->m_configJsonPath)};
         std::filesystem::path scriptPath{args->m_scriptPath};
-        std::filesystem::path resultPath{args->m_resultPath}; // @TODO разделить директорию результата и обычных статичных файлов
-        app::Application app{config, scriptPath, resultPath};
+        std::filesystem::path resultPath{args->m_resultPath};
+        app::Application app{config, scriptPath, std::move(resultPath)};
 
         // 4. Создаём обработчик HTTP-запросов
         auto handlerStrand = net::make_strand(ioc);
 
-        auto handler = std::make_shared<http_handler::RequestHandler>(app, std::move(resultPath), handlerStrand);
+        auto handler = std::make_shared<http_handler::RequestHandler>(app, "/app/web/", handlerStrand);
         logging_handler::LoggingRequestHandler<http_handler::RequestHandler> log_handler{*handler};
 
         // 5. Запустить обработчик HTTP-запросов, делегируя их обработчику запросов
