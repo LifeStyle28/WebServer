@@ -29,7 +29,6 @@ BringTagValuesUseCase::BringTagValuesUseCase(std::reference_wrapper<const model:
 
 const model::Contract::ContractTagValues& BringTagValuesUseCase::GetTagValues(const model::Contract::Id id) const
 {
-    // @TODO - сырой указатель - подумать
     const auto contractPtr{m_config.FindContractIndexBy(id)};
     if (contractPtr)
     {
@@ -119,7 +118,6 @@ static void make_archive(const std::string& savePath)
 static void start_script(const std::string& savePath, const std::string& jsonConfig,
     const std::string& scriptPath)
 {
-    std::stringstream command; ///< @TODO REMOVE
     make_dir(savePath); ///< создает папку для результатов
     call_script(savePath, jsonConfig, scriptPath); ///< вызывает скрипт
     remove_old_archive(savePath); ///< удаляет старый архив, если он есть
@@ -132,7 +130,7 @@ std::string CreateResultFileUseCase::CreateFile(const std::string& body) const
     {
         std::mt19937_64 randomizer{};
         const std::string folderName(std::to_string(randomizer())); ///< название сгенерированной папки
-        const std::string generatedFolderPath(static_cast<std::string>(m_resultPath) + folderName + "/"); ///< полный путь сгенерированной папки
+        const std::string generatedFolderPath(m_resultPath.string() + folderName + "/"); ///< полный путь сгенерированной папки
         const std::string path = generatedFolderPath + '/' + DOCS_TAR;
         start_script(generatedFolderPath, body, m_scriptPath); ///< @TODO проверить пути и работу скрипта
         return path;
@@ -142,6 +140,16 @@ std::string CreateResultFileUseCase::CreateFile(const std::string& body) const
         // @TODO отловить ошибки, которые реально могут возникнуть
     }
     throw std::runtime_error("Can't create file");
+}
+
+SaveContractDurUseCase::SaveContractDurUseCase(model::Config& config) :
+    m_config{config}
+{
+}
+
+void SaveContractDurUseCase::SaveContractDuration(const size_t duration) noexcept
+{
+    m_config.SaveContractDuration(duration);
 }
 
 } // namespace app

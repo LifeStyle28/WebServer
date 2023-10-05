@@ -49,9 +49,11 @@ public:
     ~Config() = default;
     void AddContract(Contract contract);
     Contract* FindContractIndexBy(const Contract::Id id) const noexcept;
+    void SaveContractDuration(const size_t duration) noexcept;
 private:
     ContractsStorage m_contracts;
     ContractIdToIndex m_contractIdToIndex;
+    size_t m_duration = 1;
 };
 
 } // namespace model

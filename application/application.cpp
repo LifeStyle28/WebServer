@@ -21,4 +21,9 @@ std::string Application::GetResultFileName(const std::string& body) const
     return m_createResultFile.CreateFile(body);
 }
 
+void Application::SaveContractDuration(const size_t duration) noexcept
+{
+    m_saveDuration.SaveContractDuration(duration);
+}
+
 } // namespace app

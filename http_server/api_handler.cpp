@@ -56,10 +56,12 @@ struct TagValuesRequest
     std::string contractType;
     std::string currencyType;
     std::string currencyKind;
+    size_t contractDuration;
 
     static constexpr json::string_view CONTRACT_TYPE = "contractType";
     static constexpr json::string_view CURRENCY_TYPE = "currencyType";
     static constexpr json::string_view CURRENCY_KIND = "currencyKind";
+    static constexpr json::string_view CONTRACT_DURATION = "contractDuration";
 };
 
 struct TagValuesResponse
@@ -158,7 +160,8 @@ static TagValuesRequest parse_tag_values_request(boost::string_view body)
         {
             json_val_as_string(obj.at(TagValuesRequest::CONTRACT_TYPE)),
             json_val_as_string(obj.at(TagValuesRequest::CURRENCY_TYPE)),
-            json_val_as_string(obj.at(TagValuesRequest::CURRENCY_KIND))
+            json_val_as_string(obj.at(TagValuesRequest::CURRENCY_KIND)),
+            static_cast<size_t>(obj.at(TagValuesRequest::CONTRACT_DURATION).as_int64())
         };
     }
     catch (const std::out_of_range& e)
@@ -271,6 +274,8 @@ private:
             const auto tagValuesReq{parse_tag_values_request(m_request.body())};
             const auto& tagValues{m_app.GetTagValues(model::Contract::Id(tagValuesReq.contractType + '_'
                 + tagValuesReq.currencyType + '_' + tagValuesReq.currencyKind))};
+
+            m_app.SaveContractDuration(tagValuesReq.contractDuration);
 
             return m_builder.MakeJSONResponse(json::serialize(tag_values_to_json(tagValues)));
         }

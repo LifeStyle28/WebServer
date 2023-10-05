@@ -1,3 +1,7 @@
 # CMake
 cmake-build-*/
 build/
+*.xml
+.venv/
+.pytest_cache/
+__pycache__/

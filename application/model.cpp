@@ -88,4 +88,9 @@ Contract* Config::FindContractIndexBy(const Contract::Id id) const noexcept
     return nullptr;
 }
 
+void Config::SaveContractDuration(const size_t duration) noexcept
+{
+    m_duration = duration;
+}
+
 } // namespace model

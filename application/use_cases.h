@@ -44,4 +44,13 @@ private:
     std::filesystem::path m_resultPath;
 };
 
+class SaveContractDurUseCase
+{
+public:
+    SaveContractDurUseCase(model::Config& config);
+    void SaveContractDuration(const size_t duration) noexcept;
+private:
+    model::Config& m_config;
+};
+
 } // namespace app
