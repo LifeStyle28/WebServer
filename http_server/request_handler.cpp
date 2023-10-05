@@ -119,8 +119,8 @@ static std::string_view get_mime_type(std::string_view path)
     return ContentType::OCT_STREAM;
 }
 
-RequestHandler::RequestHandler(app::Application& app, fs::path resultPath, Strand handlerStrand) :
-    m_apiHandler{app}, m_resultPath{resultPath}, m_strand{handlerStrand}
+RequestHandler::RequestHandler(app::Application& app, fs::path webPath, Strand handlerStrand) :
+    m_apiHandler{app}, m_webPath{webPath}, m_strand{handlerStrand}
 {
 }
 
@@ -217,9 +217,9 @@ RequestHandler::FileRequestResult RequestHandler::HandleFileRequest(const String
     }
     assert(!target->empty() && target->front() == '/');
 
-    if (auto opt = make_absolute_path(m_resultPath, *target))
+    if (auto opt = make_absolute_path(m_webPath, *target))
     {
-        if (!is_sub_path(*opt, m_resultPath))
+        if (!is_sub_path(*opt, m_webPath))
         {
             return builder.MakeBadRequestError("Invalid URL");
         }

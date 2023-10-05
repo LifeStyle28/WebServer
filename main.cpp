@@ -43,6 +43,7 @@ struct AppParams
     fs::path m_resultPath;
     fs::path m_configJsonPath;
     fs::path m_scriptPath;
+    std::optional<fs::path> m_webPath;
 };
 
 class InvalidCommandLine : public std::runtime_error
@@ -56,7 +57,7 @@ static std::optional<AppParams> parse_command_line(int argc, const char* argv[])
     namespace po = boost::program_options;
 
     po::options_description desc{"Allowed options"};
-    std::string resultPath, configJsonPath, scriptPath;
+    std::string resultPath, configJsonPath, scriptPath, webPath;
     desc.add_options()
         ("help,h", "produce help message")
         ("result-path,r", po::value<std::string>(&resultPath)->value_name("dir"s),
@@ -65,10 +66,12 @@ static std::optional<AppParams> parse_command_line(int argc, const char* argv[])
             "set config file path")
         ("script-path,s", po::value<std::string>(&scriptPath)->value_name("file"s),
             "set script file path")
+        ("web-path,w", po::value<std::string>(&webPath)->value_name("dir"s),
+            "set web files path")
     ;
 
     po::positional_options_description p;
-    p.add("result-path", 1).add("config-file", 1);
+    p.add("result-path", 1).add("config-file", 1).add("web-path", 1);
 
     po::variables_map vm;
     po::store(po::command_line_parser{argc, argv}.options(desc).positional(p).run(), vm);
@@ -103,6 +106,10 @@ static std::optional<AppParams> parse_command_line(int argc, const char* argv[])
     else
     {
         throw InvalidCommandLine{"--script-path is not specified"};
+    }
+    if (vm.contains("web-path"s))
+    {
+        params.m_webPath = webPath;
     }
 
     return params;
@@ -140,12 +147,13 @@ int main(int argc, const char* argv[])
         model::Config config{json_loader::load_config(args->m_configJsonPath)};
         std::filesystem::path scriptPath{args->m_scriptPath};
         std::filesystem::path resultPath{args->m_resultPath};
-        app::Application app{config, scriptPath, std::move(resultPath)};
+        app::Application app{config, scriptPath, resultPath};
 
         // 4. Создаём обработчик HTTP-запросов
+        const auto webPath = (args->m_webPath) ? *args->m_webPath : "";
         auto handlerStrand = net::make_strand(ioc);
 
-        auto handler = std::make_shared<http_handler::RequestHandler>(app, "/app/web/", handlerStrand);
+        auto handler = std::make_shared<http_handler::RequestHandler>(app, webPath, handlerStrand);
         logging_handler::LoggingRequestHandler<http_handler::RequestHandler> log_handler{*handler};
 
         // 5. Запустить обработчик HTTP-запросов, делегируя их обработчику запросов

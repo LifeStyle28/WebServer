@@ -14,7 +14,7 @@ class RequestHandler : public std::enable_shared_from_this<RequestHandler>
 {
     using Strand = net::strand<net::io_context::executor_type>;
 public:
-    RequestHandler(app::Application& app, std::filesystem::path resultPath, Strand handlerStrand);
+    RequestHandler(app::Application& app, std::filesystem::path webPath, Strand handlerStrand);
     RequestHandler(const RequestHandler&) = delete;
     RequestHandler& operator=(const RequestHandler&) = delete;
 
@@ -68,7 +68,7 @@ private:
     StringResponse ReportServerError(const size_t version, const bool keepAlive) const;
 
     ApiHandler m_apiHandler;
-    std::filesystem::path m_resultPath;
+    std::filesystem::path m_webPath;
     Strand m_strand;
 };
 
