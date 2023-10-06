@@ -158,11 +158,7 @@ std::string CreateResultFileUseCase::CreateFile(const std::string& body, const T
         const std::string folderName(std::to_string(dist(generator))); ///< название сгенерированной папки
         const std::string generatedFolderPath(m_resultPath.string() + folderName + "/"); ///< полный путь сгенерированной папки
         const std::string path = generatedFolderPath + '/' + DOCS_TAR;
-        try
-        {
-            start_script(generatedFolderPath, body, m_scriptPath); ///< @TODO проверить пути и работу скрипта
-        }
-        catch (...){}
+        start_script(generatedFolderPath, body, m_scriptPath); ///< @TODO проверить пути и работу скрипта
         return path;
     }
     catch (const std::exception& e)

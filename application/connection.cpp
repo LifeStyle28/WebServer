@@ -60,7 +60,7 @@ bool Connection::IsExpired(const std::chrono::steady_clock::time_point& timeNow)
  *
  * @param[in]  connection  соединение
  *
- * @return     Указатель на соединение или nullptr
+ * @return     Токен текущего соединения
  */
 Token ConnectionTokens::AddConnection(Connection connection)
 {
@@ -69,6 +69,13 @@ Token ConnectionTokens::AddConnection(Connection connection)
     return token;
 }
 
+/**
+ * @brief      Поиск соединения по токену
+ *
+ * @param[in]  token  токен
+ *
+ * @return     Указатель на соединение или nullptr
+ */
 Connection* ConnectionTokens::FindConnectionBy(const Token& token) const noexcept
 {
     if (auto it = m_tokenToConn.find(token); it != m_tokenToConn.end())
