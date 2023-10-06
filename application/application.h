@@ -10,14 +10,16 @@ class Application
 public:
     Application(model::Config& config, const std::filesystem::path& scriptPath,
         const std::filesystem::path& resultPath);
-    const model::Contract::ContractTagValues& GetTagValues(const model::Contract::Id id) const;
-    std::string GetResultFileName(const std::string& body) const;
-    void SaveContractDuration(const size_t duration) noexcept;
+    CreateConnectionResult CreateConnection(const model::Contract::Id id,
+        const size_t duration) const;
+    std::string GetResultFileName(const std::string& body, const Token& token) const;
+    void Tick(const std::chrono::steady_clock::time_point& timeNow);
 private:
     model::Config& m_config;
-    BringTagValuesUseCase m_bringTagValues{m_config};
+    ConnectionTokens m_tokens;
+    CreateConnectionUseCase m_createConnection{m_config, m_tokens};
     CreateResultFileUseCase m_createResultFile;
-    SaveContractDurUseCase m_saveDuration{m_config};
+    TimerUseCase m_timer{m_tokens};
 };
 
 } // namespace app

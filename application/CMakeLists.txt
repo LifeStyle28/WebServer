@@ -3,6 +3,7 @@ add_library(app SHARED
     model.cpp
     use_cases.cpp
     json_loader.cpp
+    connection.cpp
 )
 
 target_link_libraries(app CONAN_PKG::boost)

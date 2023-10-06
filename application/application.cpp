@@ -5,25 +5,27 @@ namespace app
 
 namespace fs = std::filesystem;
 
-Application::Application(model::Config& config, const fs::path& scriptPath, const fs::path& resultPath) :
-    m_config{config},
-    m_createResultFile{scriptPath, resultPath}
+Application::Application(model::Config& config, const fs::path& scriptPath,
+    const fs::path& resultPath) :
+        m_config{config},
+        m_createResultFile{scriptPath, resultPath, m_config, m_tokens}
 {
 }
 
-const model::Contract::ContractTagValues& Application::GetTagValues(const model::Contract::Id id) const
+CreateConnectionResult Application::CreateConnection(const model::Contract::Id id,
+    const size_t duration) const
 {
-    return m_bringTagValues.GetTagValues(id);
+    return m_createConnection.CreateConnection(id, duration);
 }
 
-std::string Application::GetResultFileName(const std::string& body) const
+std::string Application::GetResultFileName(const std::string& body, const Token& token) const
 {
-    return m_createResultFile.CreateFile(body);
+    return m_createResultFile.CreateFile(body, token);
 }
 
-void Application::SaveContractDuration(const size_t duration) noexcept
+void Application::Tick(const std::chrono::steady_clock::time_point& timeNow)
 {
-    m_saveDuration.SaveContractDuration(duration);
+    m_timer.Tick(timeNow);
 }
 
 } // namespace app

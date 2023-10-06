@@ -1,6 +1,7 @@
 #include "api_handler.h"
 #include "response_builder.h"
 
+#include <boost/algorithm/cxx11/any_of.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/json/parse.hpp>
 #include <boost/json/serialize.hpp>
@@ -67,6 +68,8 @@ struct TagValuesRequest
 struct TagValuesResponse
 {
     TagValuesResponse() = delete;
+    static constexpr json::string_view TOKEN = "token";
+    static constexpr json::string_view TAG_VALUES = "tag_values";
     static constexpr json::string_view KEY = "key";
     static constexpr json::string_view TAG = "tag";
     static constexpr json::string_view VALUE = "value";
@@ -88,6 +91,13 @@ struct MethodNotAllowedErrorCode
 {
     MethodNotAllowedErrorCode() = delete;
     const inline static std::string INVALID_METHOD = "invalidMethod"s;
+};
+
+struct UnauthorizedErrorCode
+{
+    UnauthorizedErrorCode() = delete;
+    const inline static std::string INVALID_TOKEN = "invalidToken"s;
+    const inline static std::string UNKNOWN_TOKEN = "unknownToken";
 };
 
 class APIError : public std::runtime_error
@@ -149,6 +159,15 @@ private:
     std::vector<http::verb> m_allowedMethods;
 };
 
+class UnauthorizedError : public APIError
+{
+public:
+    UnauthorizedError(std::string code, const std::string& msg) :
+        APIError(http::status::unauthorized, std::move(code), msg)
+    {
+    }
+};
+
 static TagValuesRequest parse_tag_values_request(boost::string_view body)
 {
     try
@@ -176,31 +195,35 @@ static TagValuesRequest parse_tag_values_request(boost::string_view body)
     }
 }
 
-static json::array tag_values_to_json(const model::Contract::ContractTagValues& tagValues)
+static json::object create_conn_result_to_json(app::CreateConnectionResult result)
 {
     json::array tagValuesArr;
-    for (const auto& tagValue : tagValues)
+    for (const auto& tagValue : result.m_tagValues)
     {
         json::object obj{{TagValuesResponse::KEY, tagValue.m_key}, {TagValuesResponse::TAG, tagValue.m_tag},
             {TagValuesResponse::VALUE, tagValue.m_value}};
         tagValuesArr.emplace_back(obj);
     }
-    return tagValuesArr;
+    return
+    {
+        {TagValuesResponse::TOKEN, *result.m_token},
+        {TagValuesResponse::TAG_VALUES, std::move(tagValuesArr)}
+    };
 }
 
-struct BringTagValuesErrorReporter
+struct CreateConnectionErrorReporter
 {
-    StringResponse operator()(const app::BringTagValuesError::InvalidPointer&) const
+    StringResponse operator()(const app::CreateConnectionError::InvalidPointer&) const
     {
         return m_builder.MakeJSONResponse(
             MakeErrorJSON(BadRequestErrorCode::INVALID_ARGUMENT, "Contract not found"s), // @TODO придумать новый тип ошибки?
             http::status::not_found);
     }
 
-    StringResponse operator()(const app::BringTagValuesError::Dummy&) const
+    StringResponse operator()(const app::CreateConnectionError::OtherReason&) const
     {
         return m_builder.MakeJSONResponse(
-            MakeErrorJSON(BadRequestErrorCode::INVALID_ARGUMENT, "Dummy"s),
+            MakeErrorJSON(BadRequestErrorCode::INVALID_ARGUMENT, "Other reason with create conn"s),
             http::status::bad_request);
     }
 
@@ -272,16 +295,19 @@ private:
         try
         {
             const auto tagValuesReq{parse_tag_values_request(m_request.body())};
-            const auto& tagValues{m_app.GetTagValues(model::Contract::Id(tagValuesReq.contractType + '_'
-                + tagValuesReq.currencyType + '_' + tagValuesReq.currencyKind))};
+            const auto createConnResult{m_app.CreateConnection(model::Contract::Id(
+                tagValuesReq.contractType + '_' +
+                tagValuesReq.currencyType + '_' +
+                tagValuesReq.currencyKind), tagValuesReq.contractDuration)
+            };
 
-            m_app.SaveContractDuration(tagValuesReq.contractDuration);
-
-            return m_builder.MakeJSONResponse(json::serialize(tag_values_to_json(tagValues)));
+            return m_builder.MakeJSONResponse(
+                json::serialize(create_conn_result_to_json(std::move(createConnResult)))
+            );
         }
-        catch (const app::BringTagValuesError& e)
+        catch (const app::CreateConnectionError& e)
         {
-            return std::visit(BringTagValuesErrorReporter{m_builder}, e.GetReason());
+            return std::visit(CreateConnectionErrorReporter{m_builder}, e.GetReason());
         }
     }
 
@@ -290,17 +316,13 @@ private:
         EnsureMethod(http::verb::get);
         EnsureJsonContentType();
 
-        try
+
+        return ExecuteAuthorized([this](const app::Token& token)
         {
-            const auto fileName{m_app.GetResultFileName(m_request.body())};
+            const auto fileName{m_app.GetResultFileName(m_request.body(), token)};
             json::object obj{{FilledContentResponse::FILE_NAME, fileName}};
             return m_builder.MakeJSONResponse(json::serialize(obj));
-        }
-        catch (const std::runtime_error& e)
-        {
-            // @TODO !!! - пробросить нормальные исключение, написать нормальные описания для них
-            throw BadRequest("badRequest"s, e.what());
-        }
+        });
     }
 
     void EnsureJsonContentType() const
@@ -323,6 +345,60 @@ private:
         {
             throw MethodNotAllowed{MethodNotAllowedErrorCode::INVALID_METHOD, "Invalid method"s, v};
         }
+    }
+
+    template <typename Fn>
+    StringResponse ExecuteAuthorized(Fn&& fn) const
+    {
+        try
+        {
+            return fn(ExtractTokenFromRequest());
+        }
+        catch (const std::exception& e)
+        {
+            throw UnauthorizedError{UnauthorizedErrorCode::UNKNOWN_TOKEN, e.what()};
+        }
+    }
+
+    app::Token ExtractTokenFromRequest() const
+    {
+        const auto it = m_request.find(http::field::authorization);
+        const auto errCode = UnauthorizedErrorCode::INVALID_TOKEN;
+        if (it == m_request.end())
+        {
+            throw UnauthorizedError{errCode, "Authorization header is required"s};
+        }
+
+        auto value = it->value();
+        constexpr auto TOKEN_START = "bearer "sv;
+        if (!boost::iequals(value.substr(0, TOKEN_START.size()), TOKEN_START))
+        {
+            throw UnauthorizedError(errCode, "Invalid Authorization header"s);
+        }
+
+        const auto token = value.substr(TOKEN_START.size());
+        const auto tokenStartPos = token.find_first_not_of(' ');
+        if (tokenStartPos == token.npos)
+        {
+            throw UnauthorizedError(errCode, "Invalid bearer token"s);
+        }
+
+        auto tokenEndPos = token.find(' ', tokenStartPos);
+        if (tokenEndPos == token.npos)
+        {
+            tokenEndPos = token.size();
+        }
+        std::string tokenStr = {&token[tokenStartPos], tokenEndPos - tokenStartPos};
+        constexpr size_t TOKEN_LENGTH = 32;
+        if (tokenStr.size() != TOKEN_LENGTH ||
+            boost::algorithm::any_of(tokenStr, [](unsigned char ch)
+            {
+                   return !std::isxdigit(ch);
+            }))
+        {
+            throw UnauthorizedError(errCode, "Token must contain exactly 32 hex digits"s);
+        }
+        return app::Token{std::move(tokenStr)};
     }
 
     const StringRequest& m_request;

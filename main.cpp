@@ -25,7 +25,7 @@ namespace
 
 // Запускает функцию fn на n потоках, включая текущий
 template <typename Fn>
-static void run_workers(unsigned numThreads, const Fn& fn)
+void run_workers(unsigned numThreads, const Fn& fn)
 {
     numThreads = std::max(1u, numThreads);
     std::vector<std::jthread> workers;
@@ -38,6 +38,82 @@ static void run_workers(unsigned numThreads, const Fn& fn)
     fn();
 }
 
+/**
+ * @brief      Класс таймера для удаления просроченных соединений
+ */
+class TickManager : public std::enable_shared_from_this<TickManager> {
+public:
+    using Strand = net::strand<net::io_context::executor_type>;
+    using Handler = std::function<void(const std::chrono::steady_clock::time_point&)>;
+
+    TickManager(Strand strand, std::chrono::seconds period, Handler handler) :
+        m_strand{strand},
+        m_period{period},
+        m_handler{std::move(handler)}
+    {
+    }
+
+    void Start()
+    {
+        net::dispatch(m_strand,
+            [self = shared_from_this()]
+            {
+                self->ScheduleTick();
+            }
+        );
+    }
+
+private:
+    void ScheduleTick()
+    {
+        assert(m_strand.running_in_this_thread());
+        m_timer.expires_after(m_period);
+        m_timer.async_wait(
+            [self = shared_from_this()](sys::error_code ec)
+            {
+                self->OnTick(ec);
+            }
+        );
+    }
+
+    void OnTick(sys::error_code ec)
+    {
+        using namespace std::chrono;
+        assert(m_strand.running_in_this_thread());
+
+        if (!ec)
+        {
+            try
+            {
+                m_handler(std::chrono::steady_clock::now());
+            }
+            catch (...)
+            {
+            }
+            ScheduleTick();
+        }
+    }
+
+    Strand m_strand;
+    std::chrono::seconds m_period;
+    net::steady_timer m_timer{m_strand};
+    Handler m_handler;
+};
+
+void CreateTickManager(TickManager::Strand strand, std::chrono::seconds period,
+    app::Application& app)
+{
+    std::make_shared<TickManager>(strand, period,
+        [&app](const std::chrono::steady_clock::time_point& timeNow)
+        {
+            app.Tick(timeNow);
+        }
+    )->Start();
+}
+
+/**
+ * @brief      Параметры командной строки
+ */
 struct AppParams
 {
     fs::path m_resultPath;
@@ -52,7 +128,7 @@ public:
     using runtime_error::runtime_error;
 };
 
-static std::optional<AppParams> parse_command_line(int argc, const char* argv[])
+std::optional<AppParams> parse_command_line(int argc, const char* argv[])
 {
     namespace po = boost::program_options;
 
@@ -156,7 +232,10 @@ int main(int argc, const char* argv[])
         auto handler = std::make_shared<http_handler::RequestHandler>(app, webPath, handlerStrand);
         logging_handler::LoggingRequestHandler<http_handler::RequestHandler> log_handler{*handler};
 
-        // 5. Запустить обработчик HTTP-запросов, делегируя их обработчику запросов
+        // 5. Привяжем таймер к приложению
+        CreateTickManager(handlerStrand, std::chrono::seconds{5}, app);
+
+        // 6. Запустить обработчик HTTP-запросов, делегируя их обработчику запросов
         const std::string adressString = "0.0.0.0";
         const auto address = net::ip::make_address(adressString);
         constexpr net::ip::port_type port = 8080;
@@ -171,7 +250,7 @@ int main(int argc, const char* argv[])
         BOOST_LOG_TRIVIAL(info) << logging::add_value(additional_data, customData)
                                 << "Server has started"sv;
 
-        // 6. Запускаем обработку асинхронных операций
+        // 7. Запускаем обработку асинхронных операций
         run_workers(std::max(1u, numThreads), [&ioc]
         {
             ioc.run();

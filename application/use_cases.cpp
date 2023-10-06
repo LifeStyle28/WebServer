@@ -11,35 +11,50 @@ namespace fs = std::filesystem;
 
 #define DOCS_TAR "docs.tar"
 
-BringTagValuesError::BringTagValuesError(Reason reason) :
+CreateConnectionError::CreateConnectionError(Reason reason) :
     std::runtime_error{"Failed to bring tag values"},
     m_reason{reason}
 {
 }
 
-const BringTagValuesError::Reason& BringTagValuesError::GetReason() const
+const CreateConnectionError::Reason& CreateConnectionError::GetReason() const
 {
     return m_reason;
 }
 
-BringTagValuesUseCase::BringTagValuesUseCase(std::reference_wrapper<const model::Config> config) :
-    m_config{config.get()}
+CreateConnectionUseCase::CreateConnectionUseCase(std::reference_wrapper<const model::Config> config,
+    ConnectionTokens& connTokens) :
+        m_config{config.get()},
+        m_connTokens{connTokens}
 {
 }
 
-const model::Contract::ContractTagValues& BringTagValuesUseCase::GetTagValues(const model::Contract::Id id) const
+CreateConnectionResult CreateConnectionUseCase::CreateConnection(const model::Contract::Id id,
+    const size_t duration) const
 {
     const auto contractPtr{m_config.FindContractIndexBy(id)};
-    if (contractPtr)
+    if (!contractPtr)
     {
-        return contractPtr->GetContractTagValues();
+        throw CreateConnectionError{CreateConnectionError::InvalidPointer{}};
     }
-    throw BringTagValuesError{BringTagValuesError::InvalidPointer{}};
+
+    try
+    {
+        const auto token{m_connTokens.AddConnection(Connection{id, duration})};
+        return {token, contractPtr->GetContractTagValues()};
+    }
+    catch (...)
+    {
+    }
+    throw CreateConnectionError{CreateConnectionError::OtherReason{}};
 }
 
-CreateResultFileUseCase::CreateResultFileUseCase(fs::path scriptPath, fs::path resultPath) :
-    m_scriptPath{scriptPath},
-    m_resultPath{resultPath}
+CreateResultFileUseCase::CreateResultFileUseCase(fs::path scriptPath, fs::path resultPath,
+    std::reference_wrapper<const model::Config> config, const ConnectionTokens& connTokens) :
+        m_scriptPath{scriptPath},
+        m_resultPath{resultPath},
+        m_config{config.get()},
+        m_connTokens{connTokens}
 {
 }
 
@@ -124,15 +139,30 @@ static void start_script(const std::string& savePath, const std::string& jsonCon
     make_archive(savePath); ///< упаковывает документы в архив
 }
 
-std::string CreateResultFileUseCase::CreateFile(const std::string& body) const
+std::string CreateResultFileUseCase::CreateFile(const std::string& body, const Token& token) const
 {
+    const auto connection{m_connTokens.FindConnectionBy(token)};
+    if (!connection)
+    {
+        throw AuthorizationError{"Connection token has not been found"};
+    }
+
     try
     {
-        std::mt19937_64 randomizer{};
-        const std::string folderName(std::to_string(randomizer())); ///< название сгенерированной папки
+        std::random_device random_device;
+        std::mt19937_64 generator{[&random_device] {
+            std::uniform_int_distribution<std::mt19937_64::result_type> dist;
+            return dist(random_device);
+        }()};
+        std::uniform_int_distribution<uint64_t> dist;
+        const std::string folderName(std::to_string(dist(generator))); ///< название сгенерированной папки
         const std::string generatedFolderPath(m_resultPath.string() + folderName + "/"); ///< полный путь сгенерированной папки
         const std::string path = generatedFolderPath + '/' + DOCS_TAR;
-        start_script(generatedFolderPath, body, m_scriptPath); ///< @TODO проверить пути и работу скрипта
+        try
+        {
+            start_script(generatedFolderPath, body, m_scriptPath); ///< @TODO проверить пути и работу скрипта
+        }
+        catch (...){}
         return path;
     }
     catch (const std::exception& e)
@@ -142,14 +172,14 @@ std::string CreateResultFileUseCase::CreateFile(const std::string& body) const
     throw std::runtime_error("Can't create file");
 }
 
-SaveContractDurUseCase::SaveContractDurUseCase(model::Config& config) :
-    m_config{config}
+TimerUseCase::TimerUseCase(ConnectionTokens& connTokens) :
+    m_connTokens{connTokens}
 {
 }
 
-void SaveContractDurUseCase::SaveContractDuration(const size_t duration) noexcept
+void TimerUseCase::Tick(const std::chrono::steady_clock::time_point& timeNow)
 {
-    m_config.SaveContractDuration(duration);
+    m_connTokens.Tick(timeNow);
 }
 
 } // namespace app

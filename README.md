@@ -3,6 +3,7 @@
 * Создаем все необходимые компоненты (директория build): ```conan install .. --build=missing -s compiler.libcxx=libstdc++11 -s build_type=Release && cmake .. -DCMAKE_BUILD_TYPE=Release```
 * Запускаем сервер из корня (не из директории build): ```./build/bin/web_server -c templates/config.json -r result -s script.py -w web```
 * Проверяем, что сервер отвечает на запрос: ```curl -v -X GET -H "Content-type: application/json" -H "Accept: application/json" -d '{"contractType":"RUSTONN_PHYS_PERSON", "currencyType":"ROUBLES", "currencyKind":"CASH", "contractDuration":2}' http://localhost:8080/api/v1/prog/tag_values```
+* Запрос контента должен выглядеть следующим образом ```curl -v -X GET -H "Content-type: application/json" -H "Accept: application/json" -H "Authorization: Bearer {token}" -d '{"from_tag_values":"json"}' http://localhost:8080/api/v1/prog/filled_content```
 
 # Запуск из-под Docker
 
