@@ -93,11 +93,15 @@ Connection* ConnectionTokens::FindConnectionBy(const Token& token) const noexcep
 void ConnectionTokens::Tick(const std::chrono::steady_clock::time_point& timeNow)
 {
     auto it = m_tokenToConn.begin();
-    for (; it != m_tokenToConn.end(); ++it)
+    while (it != m_tokenToConn.end())
     {
         if (it->second->IsExpired(timeNow))
         {
             it = m_tokenToConn.erase(it);
+        }
+        else
+        {
+            ++it;
         }
     }
 }
