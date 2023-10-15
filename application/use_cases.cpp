@@ -82,13 +82,15 @@ static void make_dir(const std::string& savePath)
  * @param[in]  scriptPath  The script path
  */
 static void call_script(const std::string& savePath, const std::string& jsonConfig,
-    const std::string& scriptPath)
+    const std::string& scriptPath, const std::string& docNums, size_t contractDuration)
 {
     std::stringstream command;
     command << "python3 ";
     command << '\'' << scriptPath << '\'' << ' '; ///< script path
     command << '\'' << jsonConfig << '\'' << ' '; ///< json-string
-    command << '\'' << savePath << '\''; ///< path for save
+    command << '\'' << savePath << '\'' << ' '; ///< path for save
+    command << '\'' << docNums << '\'' << ' ';
+    command << '\'' << contractDuration << '\'';
     if (std::system(command.str().c_str()) != 0)
     {
         throw std::runtime_error{"Failed to make documents with python-script"};
@@ -131,10 +133,10 @@ static void make_archive(const std::string& savePath)
 
 //@ TODO завернуть в strand
 static void start_script(const std::string& savePath, const std::string& jsonConfig,
-    const std::string& scriptPath)
+    const std::string& scriptPath, const std::string& docNums, size_t contractDuration)
 {
     make_dir(savePath); ///< создает папку для результатов
-    call_script(savePath, jsonConfig, scriptPath); ///< вызывает скрипт
+    call_script(savePath, jsonConfig, scriptPath, docNums, contractDuration); ///< вызывает скрипт
     remove_old_archive(savePath); ///< удаляет старый архив, если он есть
     make_archive(savePath); ///< упаковывает документы в архив
 }
@@ -145,6 +147,12 @@ std::string CreateResultFileUseCase::CreateFile(const std::string& body, const T
     if (!connection)
     {
         throw AuthorizationError{"Connection token has not been found"};
+    }
+
+    std::stringstream docNums;
+    for (const auto& i : m_config.FindContractIndexBy(connection->GetContractId())->GetDocumentsNumbers())
+    {
+        docNums << i << ' ';
     }
 
     try
@@ -158,7 +166,7 @@ std::string CreateResultFileUseCase::CreateFile(const std::string& body, const T
         const std::string folderName(std::to_string(dist(generator))); ///< название сгенерированной папки
         const std::string generatedFolderPath(m_resultPath.string() + folderName + "/"); ///< полный путь сгенерированной папки
         const std::string path = generatedFolderPath + '/' + DOCS_TAR;
-        start_script(generatedFolderPath, body, m_scriptPath); ///< @TODO проверить пути и работу скрипта
+        start_script(generatedFolderPath, body, m_scriptPath, docNums.str(), connection->GetContractDuration()); ///< @TODO проверить пути и работу скрипта
         return path;
     }
     catch (const std::exception& e)

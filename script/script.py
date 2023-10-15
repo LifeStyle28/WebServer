@@ -5,15 +5,21 @@ import json
 import os
 import logging
 
-from docxcompose.composer import Composer
-from docx import Document as Document_compose
+from docx import Document
 from num_to_rus import Converter
+
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+from docx.table import _Cell
+from docx.enum.table import WD_ROW_HEIGHT_RULE
 
 import datetime
 from dateutil.relativedelta import *
 
 # argv[1] - строка шаблона json
 # argv[2] - путь для сохранения файла
+# argv[3] - номера документов
+# argv[4] - срок договора
 
 def space_num(num):
     return format(num, ',d').replace(',',' ')
@@ -49,18 +55,88 @@ def paragraph_replace_text(paragraph, regex, replace_str):
 
 def fill_cell_table(table, column_num, text, row_set = 1):
         for cell_idx, value in enumerate(table.columns[column_num].cells): # Дата погашения
-                                if not(cell_idx > row_set and (cell_idx < 13 + row_set)):
+                                if not(cell_idx > row_set and (cell_idx < int(sys.argv[4]) * 12 + 1 + row_set)):
                                         continue
                                 value.paragraphs[0].runs[0].text = text
 
+def set_cell_border(cell: _Cell, **kwargs):
+    tc = cell._tc
+    tcPr = tc.get_or_add_tcPr()
+
+    # check for tag existnace, if none found, then create one
+    tcBorders = tcPr.first_child_found_in("w:tcBorders")
+    if tcBorders is None:
+        tcBorders = OxmlElement('w:tcBorders')
+        tcPr.append(tcBorders)
+
+    # list over all available tags
+    for edge in ('start', 'top', 'end', 'bottom', 'insideH', 'insideV'):
+        edge_data = kwargs.get(edge)
+        if edge_data:
+            tag = 'w:{}'.format(edge)
+
+            # check for tag existnace, if none found, then create one
+            element = tcBorders.find(qn(tag))
+            if element is None:
+                element = OxmlElement(tag)
+                tcBorders.append(element)
+
+            # looks like order of attributes is important
+            for key in ["sz", "val", "color", "space", "shadow"]:
+                if key in edge_data:
+                    element.set(qn('w:{}'.format(key)), str(edge_data[key]))
+
+def copy_paragraph_style(sample_par, par_to_edit):
+        run = sample_par.runs[0]
+        output_run = par_to_edit.runs[0]
+        # Run's bold data
+        output_run.bold = run.bold
+        # Run's italic data
+        output_run.italic = run.italic
+        # Run's underline data
+        output_run.underline = run.underline
+        # Run's color data
+        output_run.font.color.rgb = run.font.color.rgb
+        # Run's font data
+        output_run.style.name = run.style.name
+        output_run.font.name = run.font.name
+        output_run.font.size = run.font.size
+        # Paragraph's alignment data
+        par_to_edit.paragraph_format.alignment = sample_par.paragraph_format.alignment
+
+def create_row_with_borders(table, insert_position):
+        table.add_row() # создаем новую строку в конце
+        new_row = table.rows[-1] # берем последнюю строку
+        table.rows[insert_position]._tr.addnext(new_row._tr) # переносим её на нужную позицию
+
+        for index, cell in enumerate(table.rows[insert_position + 1].cells):
+                cell.paragraphs[0].add_run('')
+                copy_paragraph_style(table.cell(insert_position, index).paragraphs[0], cell.paragraphs[0])
+                set_cell_border(
+                        cell,
+                        top={"sz": 4, "val": "single", "color": "#000000"},
+                        bottom={"sz": 4, "val": "single", "color": "#000000"},
+                        start={"sz": 4, "val": "single", "color": "#000000"},
+                        end={"sz": 4, "val": "single", "color": "#000000"}
+                )
+
+def create_rows(table, insert_position, count):
+        for i in range(count):
+                create_row_with_borders(table, insert_position)
+                table.rows[insert_position + 1].cells[0].paragraphs[0].runs[0].text = str(count - i + 1)
+
 def fill_cell_date(table, column_num, use_date, row_set = 1):
+        create_rows(table, row_set + 1, 12 * int(sys.argv[4]) - 1)
         for cell_idx, value in enumerate(table.columns[column_num].cells): # Дата погашения
-                if not(cell_idx > row_set and (cell_idx < 13 + row_set)):
+                if not(cell_idx > row_set and (cell_idx <= (12 * int(sys.argv[4])) + row_set)):
                         continue
                 use_date = use_date + relativedelta(months=+1)
-                #cur_date = str(use_date.day) + '.' + str(use_date.month) + '.' + str(use_date.year)
-                cur_date = use_date.strftime("%d.%m.%Y")
-                value.paragraphs[0].runs[0].text = cur_date
+                value.paragraphs[0].runs[0].text = use_date.strftime("%d.%m.%Y")
+
+def fill_with_minuses(table, column_num, row_set = 1):
+        for cell_idx, value in enumerate(table.columns[column_num].cells):
+                if cell_idx > row_set + 1 and (cell_idx <= (12 * int(sys.argv[4]))+ row_set):
+                        value.paragraphs[0].runs[0].text = '-'
 
 def make_tables(document, type, tag_dict):
         logging.debug(f'table type with num={type}')
@@ -74,11 +150,12 @@ def make_tables(document, type, tag_dict):
                 make_table_3(document, tag_dict, 'Евро')
 
 def make_table_1(document, tag_dict):
+        months = int(sys.argv[4])
         logging.debug('make_table_1')
         date = datetime.datetime.strptime(tag_dict['@<DATE>@'], '%d.%m.%Y')
         loan_sum = int(tag_dict['@<SUMM_NUMBER>@'].replace(' ', ''))
 
-        payment = loan_sum * int(tag_dict['@<PERCENT_NUMBER>@']) // 1200
+        payment = loan_sum * int(tag_dict['@<PERCENT_NUMBER>@']) * months // (1200 * months)
 
         hold_sum = payment * 13 // 100
         if (payment * 13) % 100 > 0:
@@ -93,13 +170,14 @@ def make_table_1(document, tag_dict):
                         fill_cell_table(table, 2, space_num(payment)) # сумма платежа
                         fill_cell_table(table, 3, space_num(hold_sum)) # удерживаемая сумма налога
                         fill_cell_table(table, 4, space_num(result_sum)) # итоговая сумма выплаты Займодавцу
-                        table.columns[5].cells[13].paragraphs[0].runs[0].text = space_num(loan_sum) + ' (' + str(Converter().convert(loan_sum)) + ') рублей' # сумма основного долга
+                        fill_with_minuses(table, 5) # сумма основного долга, выставление минусов
+                        table.columns[5].cells[-2].paragraphs[0].runs[0].text = space_num(loan_sum) + ' (' + str(Converter().convert(loan_sum)) + ') рублей' # сумма основного долга
 
                         # Заполнение ИТОГО
-                        table.rows[14].cells[2].paragraphs[0].runs[0].text = space_num(payment * 12) + ' (' + str(Converter().convert(payment * 12)) + ') рублей' # сумма платежа
-                        table.rows[14].cells[3].paragraphs[0].runs[0].text = space_num(hold_sum * 12) + ' (' + str(Converter().convert(hold_sum * 12)) + ') рублей' # удерживаемая сумма налога
-                        table.rows[14].cells[4].paragraphs[0].runs[0].text = space_num(result_sum * 12) + ' (' + str(Converter().convert(result_sum * 12)) + ') рублей' # утоговая сумма выплаты Займодавцу
-                        table.rows[14].cells[5].paragraphs[0].runs[0].text = space_num(loan_sum) + ' (' + str(Converter().convert(loan_sum)) + ') рублей' # сумма основного долга
+                        table.rows[-1].cells[2].paragraphs[0].runs[0].text = space_num(payment * 12 * months) + ' (' + str(Converter().convert(payment * 12 * months)) + ') рублей' # сумма платежа
+                        table.rows[-1].cells[3].paragraphs[0].runs[0].text = space_num(hold_sum * 12 * months) + ' (' + str(Converter().convert(hold_sum * 12 * months)) + ') рублей' # удерживаемая сумма налога
+                        table.rows[-1].cells[4].paragraphs[0].runs[0].text = space_num(result_sum * 12 * months) + ' (' + str(Converter().convert(result_sum * 12 * months)) + ') рублей' # утоговая сумма выплаты Займодавцу
+                        table.rows[-1].cells[5].paragraphs[0].runs[0].text = space_num(loan_sum) + ' (' + str(Converter().convert(loan_sum)) + ') рублей' # сумма основного долга
 
 def make_table_2(document, tag_dict):
         logging.debug('make_table_2')
@@ -141,8 +219,8 @@ def make_table_3(document, tag_dict, currency):
 
 def get_docs_nums(data): # получим номера нужных документов
         doc_nums = []
-        for need_docs in data["docs"]:
-                doc_nums.append(int(need_docs))
+        for num in data.split():
+                doc_nums.append(int(num))
         return doc_nums
 
 def get_table_need_values(data):
@@ -226,7 +304,7 @@ def make_docs():
         correct_values(tag_dict) # подмениваем значения по необходимости
         logging.debug(f'tag_dict = : {tag_dict}')
 
-        doc_nums = get_docs_nums(data) # получаем номера документов
+        doc_nums = get_docs_nums(str(sys.argv[3])) # получаем номера документов
         for doc_num in doc_nums: # бежим по номерам документов
                 document = docx.Document(DOCX_TEMPLATES_PATH + str(doc_num) + '.docx') # открываем шаблон документа
                 replace_tags(document, tag_dict) # заменяем тэги на нужные значения
