@@ -291,6 +291,8 @@ def add_extra_tags(tag_dict):
                 tag_dict['@<PASSPORT_SERIA>@'], tag_dict['@<PASSPORT_NUM>@'] = split_passport(tag_dict['@<PASSPORT_SERIA_NUM>@'])
         tag_dict['@<GUARANTEE_NUM>@'] = str(make_contract_num(tag_dict))
         tag_dict['@<CONTRACT_NUM>@'] = str(make_contract_num(tag_dict))
+        date = datetime.datetime.strptime(tag_dict['@<DATE>@'], '%d.%m.%Y') + relativedelta(months=+(int(sys.argv[4]) * 12))
+        tag_dict['@<CONTRACT_TERM>@'] = str(date.strftime("%d.%m.%Y"))
 
 def make_fio_date(tag_dict):
         return tag_dict['@<DATE>@'] + ' ' + tag_dict['@<FIO_SHORT>@']
