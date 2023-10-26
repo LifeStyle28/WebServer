@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="css/style.css" />
+    <meta charset="utf-8" />
+    <title>Main</title>
+  </head>
+  <body>
+    <div class="body_wrapper">
+      <h2>
+        <div>
+          <label id="document_type">Выберите тип договора:</label>
+        </div>
+      </h2>
+
+      <div class="submenu">
+        <select id="document_type_select" name="document_type">
+          <option value="RUSTONN_PHYS_PERSON">
+            Вы являетесь Физ. Лицом, договор с ООО «РУСТОНН»
+          </option>
+          <option value="RUSTONN_LAW_PERSON">
+            Вы являетесь Юр. Лицом, договор с ООО «РУСТОНН»
+          </option>
+          <option value="PUGACHEV_PHYS_PERSON">
+            Вы являетесь Физ. Лицом, договор с другим физ. лицом
+          </option>
+        </select>
+        <label id="contract-hint">Рустонн-агент удерживает НДФЛ 13%</label>
+      </div>
+
+      <div class="tn-atom"></div>
+
+      <h2>
+        <div>
+          <label id="buttons-group">Выберите валюту:</label>
+        </div>
+      </h2>
+
+      <div class="buttons-currency" id="currency">
+        <button class="button-currency" id="ROUBLES">Рубли (₽)</button>
+        <button class="button-currency" id="DOLLARS">Доллары ($)</button>
+        <button class="button-currency" id="EURO">Евро (€)</button>
+        <button class="button-currency" id="USDT">USDT</button>
+      </div>
+
+      <div class="tn-atom"></div>
+
+      <h2>
+        <div>
+          <label>Выберите способ оплаты:</label>
+        </div>
+      </h2>
+
+      <div class="button-money-group">
+        <button class="button-money" id="CASH">Наличные</button>
+        <button class="button-money" id="NON_CASH">Безналичные</button>
+        <label id="city-hint">Доступно в Москве и Новороссийске</label>
+      </div>
+
+      <div class="tn-atom"></div>
+
+      <h2>
+        <div>
+          <label for="contract_term">Выберите срок договора:</label>
+        </div>
+      </h2>
+
+      <div class="submenu_contract">
+        <select id="contract_term" name="contract_term">
+          <option value="type1">1 год</option>
+          <option value="type2">2 года</option>
+          <option value="type3">3 года</option>
+        </select>
+      </div>
+      <div class="tn-atom"></div>
+      <div class="button">
+        <button onclick="onNextPage()" id="next_button">Продолжить</button>
+      </div>
+    </div>
+    <script src="js/first_page.js"></script>
+  </body>
+</html>

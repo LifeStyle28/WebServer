@@ -13,7 +13,7 @@ using namespace app;
 namespace sys = boost::system;
 namespace fs = std::filesystem;
 
-constexpr std::string_view INDEX_HTML = "index.html"sv;
+constexpr std::string_view FIRST_PAGE_HTML = "first_page.html"sv;
 
 struct FileEndpoint
 {
@@ -188,7 +188,7 @@ static std::optional<fs::path> make_absolute_path(fs::path base, std::string_vie
         auto abs_path = base / fs_path;
         if (fs::is_directory(abs_path))
         {
-            abs_path /= INDEX_HTML;
+            abs_path /= FIRST_PAGE_HTML;
             abs_path = fs::weakly_canonical(abs_path);
         }
 

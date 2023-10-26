@@ -1,0 +1,234 @@
+.body_wrapper {
+  min-width: 500px;
+  max-width: 1300px;
+  width: 40%;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.submenu {
+  width: 100%;
+  text-align: center;
+  position: relative;
+}
+
+#document_type_select {
+  min-width: 450px;
+  height: 40px;
+  border-radius: 7px;
+  font-size: medium;
+  display: block;
+  width: 100%;
+}
+
+#contract_term {
+  width: 100%;
+  height: 40px;
+  border-radius: 7px;
+  font-size: medium;
+  text-align: left;
+}
+
+#city-hint {
+  margin-top: 0.5%;
+  display: flex;
+  font-size: smaller;
+  text-align: left;
+  min-width: 220px;
+  visibility: hidden;
+}
+
+#contract-hint
+{
+  display: block;
+  margin-top: 0.5%;
+  font-size: smaller;
+  text-align: left;
+}
+
+.buttons-currency {
+  width: 100%;
+  min-width: 500px;
+}
+
+.button-currency {
+  display: inline;
+  width: 24%;
+  height: 40px;
+  outline: none;
+  border: none;
+  border-radius: 7px;
+  font-size: medium;
+  min-width: 113px;
+}
+
+.button-currency-active {
+  width: 24%;
+  height: 40px;
+  outline: none;
+  border: none;
+  border-radius: 7px;
+  font-size: medium;
+  min-width: 113px;
+  color: white;
+  background-color: #5ba93a;
+}
+
+/* Clear floats (clearfix hack) */
+.buttons-currency:after {
+  content: "";
+  clear: both;
+  display: table;
+}
+
+.buttons-currency:not(:last-child) {
+  border-right: none; /* Prevent double borders */
+}
+
+/* Add a background color on hover */
+.buttons-currency button:hover {
+  background-color: #5ba93a;
+  color: white;
+}
+
+.tn-atom {
+  height: 1px;
+  margin-top: 40px;
+  margin-bottom: 40px;
+  margin-left: auto;
+  margin-right: auto;
+  background-color: #5a711a;
+  background-position: center center;
+  /* max-width: 40%; */
+  min-width: 450px;
+}
+
+select {
+  width: 300px;
+  height: 25px;
+}
+
+.button-money-group {
+  display: inline-block;
+  width: 100%;
+}
+
+.button-money {
+  width: 49%;
+  height: 40px;
+  outline: none;
+  border: none;
+  border-radius: 7px;
+  font-size: medium;
+  min-width: 230px;
+}
+
+.button-money-active {
+    width: 49%;
+    height: 40px;
+    outline: none;
+    border: none;
+    border-radius: 7px;
+    font-size: medium;
+    min-width: 230px;
+    background-color: #5ba93a;
+    color: white;
+}
+
+.button-money-group:not(:last-child) {
+  border-right: none; /* Prevent double borders */
+}
+
+/* Add a background color on hover */
+.button-money-group button:hover {
+  background-color: #5ba93a;
+  color: white;
+}
+
+h2 {
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: normal;
+  color: #000000;
+  text-align: left;
+  min-width: 450px;
+  height: 40px;
+}
+
+#next_button {
+  text-align: center;
+  float: right;
+  cursor: pointer;
+  height: 40px;
+  outline: none;
+  border: none;
+  width: 10%;
+  border-radius: 7px;
+  font-size: medium;
+  min-width: 110px;
+  background-color: #5ba93a;
+  color: white;
+}
+
+#prev_button {
+  text-align: center;
+  float: left;
+  cursor: pointer;
+  height: 40px;
+  outline: none;
+  width: 10%;
+  border-radius: 7px;
+  font-size: medium;
+  min-width: 110px;
+  background-color: white;
+  color: gray;
+  border: 2px solid gray;
+}
+
+#form_main
+{
+  text-align: left;
+  height: 40px;
+  font-size: x-large;
+}
+
+#form_annotation
+{
+  text-align: left;
+  height: 40px;
+  font-size: large;
+}
+
+.form-element {
+  display: block;
+  margin: 10px auto;
+  border-radius: 7px;
+  outline: none;
+  border: 1px solid rgb(1, 32, 32);
+  color: rgb(1, 32, 32);
+  text-align: left;
+  height: 40px;
+  width: 100%;
+  font-size: medium;
+  margin-bottom: 20px;
+  padding-left: 10px;
+}
+
+#form_value
+{
+  font: 1em arial;
+}
+
+#comments
+{
+  width: 100%;
+  height: auto;
+  resize: horizontal;
+  min-width: 100%;
+  max-width: 100%;
+  margin-top: 20px;
+}
+
+.form-container
+{
+  text-align: left;
+}
