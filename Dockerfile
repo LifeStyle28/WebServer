@@ -27,17 +27,25 @@ RUN cd /app/build && \
 # Второй контейнер в том же докерфайле
 FROM ubuntu:22.04 as run
 
-# Создадим рабочую папку app и выставим права доступа
-RUN mkdir -p /app
-RUN chmod 777 -R /app
-RUN mkdir /app/templates && mkdir /app/result && mkdir /app/script
+ENV DEBIAN_FRONTEND noninteractive.
+RUN apt-get update
+RUN apt-get install -y language-pack-ru zip
+ENV LANGUAGE ru_RU.UTF-8
+ENV LANG ru_RU.UTF-8
+ENV LC_ALL ru_RU.UTF-8
+RUN locale-gen ru_RU.UTF-8 && dpkg-reconfigure locales
 
 # Установим python v3 и pip
 RUN apt update && apt install -y python3 python3-pip
 
+RUN mkdir /app && chmod 777 -R /app
+
 # Создадим пользователя admin
 RUN groupadd -r admin && useradd -mrg admin admin
 USER admin
+
+# Создадим рабочую папку app и выставим права доступа
+RUN mkdir -p /app/templates && mkdir /app/result && mkdir /app/script
 
 # Установим необходимые для скрипта модули
 RUN pip install docxcompose python-docx num-to-rus python-dateutil

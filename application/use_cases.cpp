@@ -9,7 +9,7 @@ namespace app
 
 namespace fs = std::filesystem;
 
-#define DOCS_TAR "docs.tar"
+#define DOCS_ZIP "docs.zip"
 
 CreateConnectionError::CreateConnectionError(Reason reason) :
     std::runtime_error{"Failed to bring tag values"},
@@ -107,7 +107,7 @@ static void remove_old_archive(const std::string& savePath)
     std::stringstream command;
     command << "rm -rf ";
     command << savePath;
-    command << DOCS_TAR;
+    command << DOCS_ZIP;
     std::system(command.str().c_str());
 }
 
@@ -119,12 +119,11 @@ static void remove_old_archive(const std::string& savePath)
 static void make_archive(const std::string& savePath)
 {
     std::stringstream command;
-    command << "tar -cvf ";
+    command << "zip -r ";
     command << savePath;
-    command << DOCS_TAR;
-    command << " -C ";
+    command << DOCS_ZIP;
+    command << " ";
     command << savePath;
-    command << ".";
     if (std::system(command.str().c_str()) != 0)
     {
         throw std::runtime_error{"Failed to create tar"};
@@ -165,7 +164,7 @@ std::string CreateResultFileUseCase::CreateFile(const std::string& body, const T
         std::uniform_int_distribution<uint64_t> dist;
         const std::string folderName(std::to_string(dist(generator))); ///< название сгенерированной папки
         const std::string generatedFolderPath(m_resultPath.string() + folderName + "/"); ///< полный путь сгенерированной папки
-        const std::string path = generatedFolderPath + '/' + DOCS_TAR;
+        const std::string path = generatedFolderPath + '/' + DOCS_ZIP;
         start_script(generatedFolderPath, body, m_scriptPath, docNums.str(), connection->GetContractDuration()); ///< @TODO проверить пути и работу скрипта
         return path;
     }

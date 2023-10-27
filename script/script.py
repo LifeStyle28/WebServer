@@ -323,7 +323,7 @@ def make_docs():
                 document.save(save_name)
 
 if __name__ == "__main__":
-        LOG_FULL_NAME = 'python_script.log'
+        LOG_FULL_NAME = '/app/script/python_script.log'
         DOCX_TEMPLATES_PATH = '/app/templates/docx/'
 
         logging.basicConfig(level=logging.DEBUG, filename=LOG_FULL_NAME) # запись логов уровня дебаг в файл LOG_FULL_NAME
