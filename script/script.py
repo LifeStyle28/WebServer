@@ -143,11 +143,13 @@ def make_tables(document, type, tag_dict):
         if type <= 4:
                 make_table_1(document, tag_dict)
         elif type <= 9:
-                make_table_2(document, tag_dict)
+                make_table_2(document, tag_dict, ' рублей')
         elif type <= 10:
                 make_table_3(document, tag_dict, 'долларов США')
         elif type <= 11:
                 make_table_3(document, tag_dict, 'Евро')
+        elif type == 12:
+                make_table_2(document, tag_dict, ' USDT TRC-20')
 
 def make_table_1(document, tag_dict):
         months = int(sys.argv[4]) * 12
@@ -179,7 +181,7 @@ def make_table_1(document, tag_dict):
                         table.rows[-1].cells[4].paragraphs[0].runs[0].text = space_num(result_sum * months) + ' (' + str(Converter().convert(result_sum * months)) + ') рублей' # утоговая сумма выплаты Займодавцу
                         table.rows[-1].cells[5].paragraphs[0].runs[0].text = space_num(loan_sum) + ' (' + str(Converter().convert(loan_sum)) + ') рублей' # сумма основного долга
 
-def make_table_2(document, tag_dict):
+def make_table_2(document, tag_dict, currency):
         logging.debug('make_table_2')
         months = int(sys.argv[4]) * 12
         date = datetime.datetime.strptime(tag_dict['@<DATE>@'], '%d.%m.%Y')
@@ -193,13 +195,14 @@ def make_table_2(document, tag_dict):
                         table.rows[0].cells[2].paragraphs[0].runs[0].text = 'Сумма процентов: ' + str(int(tag_dict['@<PERCENT_NUMBER>@'])) + '%'
 
                         fill_cell_date(table, 1, date) # дата погашения
-                        fill_cell_table(table, 2, space_num(payment)) # сумма платежа
+                        fill_cell_table(table, 2, space_num(payment) + currency) # сумма платежа
 
-                        table.columns[3].cells[1 + months].paragraphs[0].runs[0].text = space_num(loan_sum) # сумма основного долга
+                        table.columns[3].cells[1 + months].paragraphs[0].runs[0].text = space_num(loan_sum) + currency # сумма основного долга
 
                         # Заполнение ИТОГО
-                        table.rows[-1].cells[2].paragraphs[0].runs[0].text = space_num(payment * months) + ' (' + str(Converter().convert(payment * months)) + ') рублей' # сумма платежа
-                        table.rows[-1].cells[3].paragraphs[0].runs[0].text = space_num(loan_sum) + ' (' + str(Converter().convert(loan_sum)) + ') рублей' # сумма основного долга
+                        table.rows[-1].cells[2].paragraphs[0].runs[0].text = space_num(payment * months) + ' (' + str(Converter().convert(payment * months)) + ')' + currency # сумма платежа
+                        if (currency != ' USDT TRC-20'):
+                                table.rows[-1].cells[3].paragraphs[0].runs[0].text = space_num(loan_sum) + ' (' + str(Converter().convert(loan_sum)) + ')' + currency # сумма основного долга
 
 def make_table_3(document, tag_dict, currency):
         logging.debug('make_table_3')
@@ -247,10 +250,12 @@ def get_name_by_num(num):
                   9: 'Пугачев Т.В. + физ. лицо (Руб)',
                   10: 'Пугачев Т.В. + физ. лицо ($)',
                   11: 'Пугачев Т.В. + физ. лицо (Euro)',
+                  12: 'Пугачев Т.В. + физ. лицо (USDT)',
                   13: 'Поручительство Пугачев Т.В. (Руб)',
                   17: 'Поручительство Рустонн (Руб)',
                   18: 'Поручительство Рустонн ($)',
                   19: 'Поручительство Рустонн (Euro)',
+                  20: 'Поручительство Рустонн (USDT)',
                   21: 'Расписка (Руб)',
                   22: 'Расписка ($)',
                   23: 'Расписка (Euro)'}
