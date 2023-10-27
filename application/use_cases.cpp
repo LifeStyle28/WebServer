@@ -1,6 +1,8 @@
 #include "use_cases.h"
 
 #include <random>
+#include <fstream>
+#include <iostream>
 
 #pragma GCC diagnostic ignored "-Wunused-result" // @TODO - ugly
 
@@ -10,6 +12,7 @@ namespace app
 namespace fs = std::filesystem;
 
 #define DOCS_ZIP "docs.zip"
+#define PERCENT_FILE "/app/templates/percent.txt"
 
 CreateConnectionError::CreateConnectionError(Reason reason) :
     std::runtime_error{"Failed to bring tag values"},
@@ -74,6 +77,18 @@ static void make_dir(const std::string& savePath)
     }
 }
 
+static int get_percent()
+{
+    std::ifstream file(PERCENT_FILE);
+    if (file.is_open())
+    {
+        int percent;
+        file >> percent;
+        return percent;
+    }
+    throw std::runtime_error("Can't get percent from file: " PERCENT_FILE);
+}
+
 /**
  * @brief      Исполняет python-скрипт
  *
@@ -90,7 +105,8 @@ static void call_script(const std::string& savePath, const std::string& jsonConf
     command << '\'' << jsonConfig << '\'' << ' '; ///< json-string
     command << '\'' << savePath << '\'' << ' '; ///< path for save
     command << '\'' << docNums << '\'' << ' ';
-    command << '\'' << contractDuration << '\'';
+    command << '\'' << contractDuration << '\'' << ' ';
+    command << '\'' << get_percent() << '\'';
     if (std::system(command.str().c_str()) != 0)
     {
         throw std::runtime_error{"Failed to make documents with python-script"};
@@ -170,6 +186,7 @@ std::string CreateResultFileUseCase::CreateFile(const std::string& body, const T
     }
     catch (const std::exception& e)
     {
+        std::cout << e.what() << std::endl;
         // @TODO отловить ошибки, которые реально могут возникнуть
     }
     throw std::runtime_error("Can't create file");

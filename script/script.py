@@ -20,6 +20,7 @@ from dateutil.relativedelta import *
 # argv[2] - путь для сохранения файла
 # argv[3] - номера документов
 # argv[4] - срок договора
+# argv[5] - процентная ставка
 
 def space_num(num):
     return format(num, ',d').replace(',',' ')
@@ -228,16 +229,6 @@ def get_docs_nums(data): # получим номера нужных докуме
                 doc_nums.append(int(num))
         return doc_nums
 
-def get_table_need_values(data):
-        for entry in data["tag_values"]:
-                if entry["tag"] == "@<SUMM_NUMBER>@":
-                        loan_sum = int(entry["key"])
-                elif entry["tag"] == "@<PERCENT_NUMBER>@":
-                        perc = int(entry["key"])
-                elif entry["tag"] == "@<DATE>@":
-                        date = entry["key"]
-        return loan_sum, perc, date
-
 def tables_replace_text(document, regex, new_value):
         for table in document.tables:
                 for row in table.rows:
@@ -288,8 +279,6 @@ def make_contract_num(tag_dict):
 def add_extra_tags(tag_dict):
         if '@<SUMM_NUMBER>@' in tag_dict:
                 tag_dict['@<SUMM_TEXT>@'] = str(Converter().convert(int(tag_dict['@<SUMM_NUMBER>@'])))
-        if '@<PERCENT_NUMBER>@' in tag_dict:
-                tag_dict['@<PERCENT_TEXT>@'] = str(Converter().convert(int(tag_dict['@<PERCENT_NUMBER>@'])))
         if '@<FIO_FULL>@' in tag_dict:
                 tag_dict['@<FIO_SHORT>@'] = make_fio_short(tag_dict['@<FIO_FULL>@'])
         if '@<PASSPORT_SERIA_NUM>@' in tag_dict:
@@ -298,6 +287,9 @@ def add_extra_tags(tag_dict):
         tag_dict['@<CONTRACT_NUM>@'] = str(make_contract_num(tag_dict))
         date = datetime.datetime.strptime(tag_dict['@<DATE>@'], '%d.%m.%Y') + relativedelta(months=+(int(sys.argv[4]) * 12))
         tag_dict['@<CONTRACT_TERM>@'] = str(date.strftime("%d.%m.%Y"))
+        tag_dict['@<PERCENT_NUMBER>@'] = str(sys.argv[5])
+        if '@<PERCENT_NUMBER>@' in tag_dict:
+                tag_dict['@<PERCENT_TEXT>@'] = str(Converter().convert(int(tag_dict['@<PERCENT_NUMBER>@'])))
 
 def make_fio_date(tag_dict):
         return tag_dict['@<DATE>@'] + ' ' + tag_dict['@<FIO_SHORT>@']
