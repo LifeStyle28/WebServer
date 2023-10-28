@@ -296,11 +296,9 @@ def make_fio_date(tag_dict):
 
 def make_docs():
         data = json.loads(str(sys.argv[1])) # загружаем шаблон
-        data = data['contracts'][0] # встаём на единственный контракт
-
         tag_dict = {} # создаем словарь соответствия тэгов и значений
-        for entry in data['tag_values']: # заполняем словарь тэгов
-                tag_dict[entry['tag']] = str(entry['key'])
+        for entry in data['from_tag_values']: # заполняем словарь тэгов
+                tag_dict[entry['tag']] = str(entry['value'])
         add_extra_tags(tag_dict) # добавить новые необходимые теги, такие как текстовые представления чисел
         correct_values(tag_dict) # подмениваем значения по необходимости
         logging.debug(f'tag_dict = : {tag_dict}')
