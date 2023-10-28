@@ -53,9 +53,11 @@ CreateConnectionResult CreateConnectionUseCase::CreateConnection(const model::Co
 }
 
 CreateResultFileUseCase::CreateResultFileUseCase(fs::path scriptPath, fs::path resultPath,
-    std::reference_wrapper<const model::Config> config, const ConnectionTokens& connTokens) :
+    fs::path webPath, std::reference_wrapper<const model::Config> config,
+    const ConnectionTokens& connTokens) :
         m_scriptPath{scriptPath},
         m_resultPath{resultPath},
+        m_webPath{webPath},
         m_config{config.get()},
         m_connTokens{connTokens}
 {
@@ -182,7 +184,17 @@ std::string CreateResultFileUseCase::CreateFile(const std::string& body, const T
         const std::string generatedFolderPath(m_resultPath.string() + folderName + "/"); ///< полный путь сгенерированной папки
         const std::string path = generatedFolderPath + '/' + DOCS_ZIP;
         start_script(generatedFolderPath, body, m_scriptPath, docNums.str(), connection->GetContractDuration()); ///< @TODO проверить пути и работу скрипта
-        return path;
+
+        auto make_result_path = [&path](fs::path webPath)
+        {
+            if (const auto pos = path.find(webPath.string()); pos != std::string::npos)
+            {
+                return path.substr(pos + webPath.string().size());
+            }
+            return path;
+        };
+
+        return make_result_path(m_webPath);
     }
     catch (const std::exception& e)
     {

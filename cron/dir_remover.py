@@ -5,8 +5,8 @@ import os
 from datetime import datetime
 from datetime import timedelta
 
-for file in os.listdir(r'/app/result'):
-	command = r'stat /app/result/' + file + r' | grep Access:\ 2'
+for file in os.listdir(r'/app/web/result'):
+	command = r'stat /app/web/result/' + file + r' | grep Access:\ 2'
 	time_str = subprocess.getoutput(command)
 	match = re.search(r'(\d\d\d\d-\d\d-\d\d) (\d\d:\d\d:\d\d)', time_str)
 	last_use_datetime = datetime.fromisoformat(str(match[1]) + ' ' + str(match[2]));

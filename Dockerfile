@@ -45,7 +45,7 @@ RUN groupadd -r admin && useradd -mrg admin admin
 USER admin
 
 # Создадим рабочую папку app и выставим права доступа
-RUN mkdir -p /app/templates && mkdir /app/result && mkdir /app/script
+RUN mkdir -p /app/templates && mkdir /app/web && mkdir /app/web/result && mkdir /app/script
 
 # Установим необходимые для скрипта модули
 RUN pip install docxcompose python-docx num-to-rus python-dateutil
@@ -59,4 +59,4 @@ COPY ./web /app/web
 ENV LD_LIBRARY_PATH=/app/
 
 # Запускаем веб-сервер
-ENTRYPOINT ["/app/web_server", "-r", "/app/result/", "-c", "/app/templates/config.json", "-s", "/app/script/script.py", "-w", "/app/web/"]
+ENTRYPOINT ["/app/web_server", "-r", "/app/web/result/", "-c", "/app/templates/config.json", "-s", "/app/script/script.py", "-w", "/app/web/"]

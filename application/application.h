@@ -9,7 +9,7 @@ class Application
 {
 public:
     Application(model::Config& config, const std::filesystem::path& scriptPath,
-        const std::filesystem::path& resultPath);
+        const std::filesystem::path& resultPath, const std::filesystem::path& webPath);
     CreateConnectionResult CreateConnection(const model::Contract::Id id,
         const size_t duration) const;
     std::string GetResultFileName(const std::string& body, const Token& token) const;

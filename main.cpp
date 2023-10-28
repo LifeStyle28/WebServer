@@ -223,10 +223,10 @@ int main(int argc, const char* argv[])
         model::Config config{json_loader::load_config(args->m_configJsonPath)};
         std::filesystem::path scriptPath{args->m_scriptPath};
         std::filesystem::path resultPath{args->m_resultPath};
-        app::Application app{config, scriptPath, resultPath};
+        const auto webPath = (args->m_webPath) ? *args->m_webPath : "";
+        app::Application app{config, scriptPath, resultPath, webPath};
 
         // 4. Создаём обработчик HTTP-запросов
-        const auto webPath = (args->m_webPath) ? *args->m_webPath : "";
         auto handlerStrand = net::make_strand(ioc);
 
         auto handler = std::make_shared<http_handler::RequestHandler>(app, webPath, handlerStrand);

@@ -6,7 +6,8 @@
 
 #include <boost/format.hpp>
 
-namespace http_handler {
+namespace http_handler
+{
 
 using namespace std::literals;
 using namespace app;

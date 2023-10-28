@@ -52,11 +52,13 @@ class CreateResultFileUseCase
 {
 public:
     CreateResultFileUseCase(std::filesystem::path scriptPath, std::filesystem::path resultPath,
-        std::reference_wrapper<const model::Config> config, const ConnectionTokens& connTokens);
+        std::filesystem::path webPath, std::reference_wrapper<const model::Config> config,
+        const ConnectionTokens& connTokens);
     std::string CreateFile(const std::string& body, const Token& token) const;
 private:
     std::filesystem::path m_scriptPath;
     std::filesystem::path m_resultPath;
+    std::filesystem::path m_webPath;
     const model::Config& m_config;
     const ConnectionTokens& m_connTokens;
 };

@@ -6,9 +6,9 @@ namespace app
 namespace fs = std::filesystem;
 
 Application::Application(model::Config& config, const fs::path& scriptPath,
-    const fs::path& resultPath) :
+    const fs::path& resultPath, const fs::path& webPath) :
         m_config{config},
-        m_createResultFile{scriptPath, resultPath, m_config, m_tokens}
+        m_createResultFile{scriptPath, resultPath, webPath, m_config, m_tokens}
 {
 }
 
