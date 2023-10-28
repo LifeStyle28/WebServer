@@ -1,7 +1,8 @@
 // глобальная переменная для заполнения json-реквеста для 1 страницы
-let first_page_json = JSON.parse(
-  '{"contractType":"RUSTONN_PHYS_PERSON", "currencyType":"", "currencyKind":""}'
+var first_page_json = JSON.parse(
+  '{"contractType":"RUSTONN_PHYS_PERSON", "currencyType":"", "currencyKind":"", "contractDuration":1}'
 );
+var first_page_json_response;
 
 // функция для отображения хинта для типа контракта
 function contract() {
@@ -74,6 +75,19 @@ function nonCash() {
   });
 }
 
+function isAllFieldsFilled(jsonObj) {
+  for (let key in jsonObj) {
+    if (
+      jsonObj[key] === "" ||
+      jsonObj[key] === null ||
+      jsonObj[key] === undefined
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
 // функция перехода на следующую страницу
 //@todo добавить тут отсылку хттп запроса
 function onNextPage() {
@@ -84,29 +98,29 @@ function onNextPage() {
       " " +
       first_page_json.currencyKind
   );
-  // отправить хттп запрос с json-файлом
+  if (isAllFieldsFilled(first_page_json)) 
+  {
+    console.log(JSON.stringify(first_page_json));
+    // отправить хттп запрос с json-файлом
 
-  //window.location.href = "second_page.html";
-
-  var data = JSON.stringify({
-    contractType: "RUSTONN_PHYS_PERSON",
-    currencyType: "ROUBLES",
-    currencyKind: "CASH",
-    contractDuration: 2
-  });
-  
-  fetch('http://localhost/api/v1/prog/tag_values', {
-    method: 'POST',
-    mode: 'no-cors', // Добавьте этот строку
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    },
-    body: data
-  })
-  .then(response => response)
-  .then(data => console.log(data))
-  .catch((error) => console.error('Error:', error));
+    fetch("http://localhost/api/v1/prog/tag_values", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(first_page_json)
+    })
+    .then((response) => response.json())
+    .then((data) => {
+      first_page_json_response = data;
+      localStorage.setItem("first_page_json_response", JSON.stringify(first_page_json_response));
+      console.log(first_page_json_response); // Вывод данных для проверки
+    })
+    .catch((error) => console.error("Error:", error));
+    // переходим на некст страницу
+    window.location.href = "second_page.html";
+  }
 }
 
 contract();

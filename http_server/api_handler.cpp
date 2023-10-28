@@ -289,7 +289,7 @@ private:
 
     StringResponse TagValuesReqHandle() const
     {
-        EnsureMethod(http::verb::get);
+        EnsureMethod(http::verb::post);
         EnsureJsonContentType();
 
         try
@@ -313,7 +313,7 @@ private:
 
     StringResponse FilledContentHandle() const
     {
-        EnsureMethod(http::verb::get);
+        EnsureMethod(http::verb::post);
         EnsureJsonContentType();
 
 
