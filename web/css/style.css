@@ -232,3 +232,7 @@ h2 {
 {
   text-align: left;
 }
+
+.invalid-input {
+  color: red;
+}
