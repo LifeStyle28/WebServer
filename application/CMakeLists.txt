@@ -1,3 +1,5 @@
+include_directories(${CMAKE_SOURCE_DIR}/logger)
+
 add_library(app SHARED
     application.cpp
     model.cpp

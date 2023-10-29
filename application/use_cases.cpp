@@ -1,15 +1,18 @@
 #include "use_cases.h"
+#include "boost_logger.h"
 
 #include <random>
 #include <fstream>
-#include <iostream>
 
 #pragma GCC diagnostic ignored "-Wunused-result" // @TODO - ugly
 
 namespace app
 {
 
+using namespace boost_logger;
 namespace fs = std::filesystem;
+namespace json = boost::json;
+namespace logging = boost::log;
 
 #define DOCS_ZIP "docs.zip"
 #define PERCENT_FILE "/app/templates/percent.txt"
@@ -137,7 +140,7 @@ static void remove_old_archive(const std::string& savePath)
 static void make_archive(const std::string& savePath)
 {
     std::stringstream command;
-    command << "zip -r ";
+    command << "zip -rj ";
     command << savePath;
     command << DOCS_ZIP;
     command << " ";
@@ -182,7 +185,7 @@ std::string CreateResultFileUseCase::CreateFile(const std::string& body, const T
         std::uniform_int_distribution<uint64_t> dist;
         const std::string folderName(std::to_string(dist(generator))); ///< название сгенерированной папки
         const std::string generatedFolderPath(m_resultPath.string() + folderName + "/"); ///< полный путь сгенерированной папки
-        const std::string path = generatedFolderPath + '/' + DOCS_ZIP;
+        const std::string path = generatedFolderPath + DOCS_ZIP;
         start_script(generatedFolderPath, body, m_scriptPath, docNums.str(), connection->GetContractDuration()); ///< @TODO проверить пути и работу скрипта
 
         auto make_result_path = [&path](fs::path webPath)
@@ -196,9 +199,11 @@ std::string CreateResultFileUseCase::CreateFile(const std::string& body, const T
 
         return make_result_path(m_webPath);
     }
-    catch (const std::exception& e)
+    catch (const std::exception& ex)
     {
-        std::cout << e.what() << std::endl;
+        json::value customData{{"exception", ex.what()}, {"code", EXIT_FAILURE}};
+        BOOST_LOG_TRIVIAL(info) << logging::add_value(additional_data, customData)
+                                << "server exited";
         // @TODO отловить ошибки, которые реально могут возникнуть
     }
     throw std::runtime_error("Can't create file");

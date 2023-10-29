@@ -263,8 +263,18 @@ def replace_tags(document, tag_dict):
                         paragraph_replace_text(paragraph, regex, value)
                 tables_replace_text(document, regex, value)
 
-def make_fio_short(fio_full):
-        return fio_full.split()[0] + ' ' + fio_full.split()[1][0] + '. ' + fio_full.split()[2][0] + '.'
+def make_fio_short(fio_full, char = ''):
+        try:
+                split_fio = fio_full.split()
+                result = ''
+                for i, word in enumerate(split_fio):
+                        if 0 == i and '.' == char: # нужны фамилия и инициалы через точку
+                                result = word + ' '
+                        else:
+                                result += word[0] + char
+                return result
+        except Exception as e: # в случае любой ошибки возвращаем первоначальные ФИО
+                return fio_full
 
 def split_passport(seria_num):
         if len(seria_num.split()) == 1:
@@ -274,13 +284,13 @@ def split_passport(seria_num):
 def make_contract_num(tag_dict):
         date = datetime.datetime.strptime(tag_dict['@<DATE>@'], '%d.%m.%Y')
         datestr = date.strftime('%d%m%y')
-        return datestr + tag_dict['@<FIO_FULL>@'].split()[0][0] + tag_dict['@<FIO_FULL>@'].split()[1][0] + tag_dict['@<FIO_FULL>@'].split()[2][0]
+        return datestr + make_fio_short(tag_dict['@<FIO_FULL>@'])
 
 def add_extra_tags(tag_dict):
         if '@<SUMM_NUMBER>@' in tag_dict:
                 tag_dict['@<SUMM_TEXT>@'] = str(Converter().convert(int(tag_dict['@<SUMM_NUMBER>@'])))
         if '@<FIO_FULL>@' in tag_dict:
-                tag_dict['@<FIO_SHORT>@'] = make_fio_short(tag_dict['@<FIO_FULL>@'])
+                tag_dict['@<FIO_SHORT>@'] = make_fio_short(tag_dict['@<FIO_FULL>@'], '.')
         if '@<PASSPORT_SERIA_NUM>@' in tag_dict:
                 tag_dict['@<PASSPORT_SERIA>@'], tag_dict['@<PASSPORT_NUM>@'] = split_passport(tag_dict['@<PASSPORT_SERIA_NUM>@'])
         tag_dict['@<GUARANTEE_NUM>@'] = str(make_contract_num(tag_dict))
