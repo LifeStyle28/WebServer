@@ -193,7 +193,7 @@ function onFinalReq() {
     }
   }
 
-  fetch("http://localhost/api/v1/prog/filled_content", {
+  fetch("/api/v1/prog/filled_content", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -209,7 +209,7 @@ function onFinalReq() {
       console.log(data);
 
       // Выполнить GET запрос сразу после получения ответа на POST запрос
-      fetch(`http://localhost/${data.fileName}`)
+      fetch(`/${data.fileName}`)
         .then((response) => response.blob()) // Декодируем ответ в формате Blob
         .then((data) => {
           // Создаем объект URL из Blob

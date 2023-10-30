@@ -98,12 +98,12 @@ function onNextPage() {
       " " +
       first_page_json.currencyKind
   );
-  if (isAllFieldsFilled(first_page_json)) 
+  if (isAllFieldsFilled(first_page_json))
   {
     console.log(JSON.stringify(first_page_json));
     // отправить хттп запрос с json-файлом
 
-    fetch("http://localhost/api/v1/prog/tag_values", {
+    fetch("/api/v1/prog/tag_values", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
