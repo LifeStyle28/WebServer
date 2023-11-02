@@ -117,7 +117,8 @@ function onNextPage() {
       localStorage.setItem("first_page_json_response", JSON.stringify(first_page_json_response));
       console.log(first_page_json_response); // Вывод данных для проверки
     })
-    .catch((error) => console.error("Error:", error));
+    .catch((error) => {console.error("Error:", error);
+    return;});
     // переходим на некст страницу
     window.location.href = "second_page.html";
   }
