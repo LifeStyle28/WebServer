@@ -182,24 +182,22 @@ function onNextPage() {
     console.log(JSON.stringify(first_page_json));
     // отправить хттп запрос с json-файлом
 
-    fetch("/api/v1/prog/tag_values", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify(first_page_json)
-    })
-    .then((response) => response.json())
-    .then((data) => {
+    $.post({
+      url: '/api/v1/prog/tag_values',
+      dataType: 'json',
+      contentType:"application/json",
+      data: JSON.stringify(first_page_json)
+    }).done(function(data){
       first_page_json_response = data;
       localStorage.setItem("first_page_json_response", JSON.stringify(first_page_json_response));
       console.log(first_page_json_response); // Вывод данных для проверки
+      // переходим на некст страницу
+      window.location.href = "second_page.html";
     })
-    .catch((error) => {console.error("Error:", error);
-    return;});
-    // переходим на некст страницу
-    window.location.href = "second_page.html";
+    .fail(function(){
+        alert("Can't load contract");
+    });
+
   }
 }
 
