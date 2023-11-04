@@ -1,48 +1,123 @@
 // глобальная переменная для заполнения json-реквеста для 1 страницы
 var first_page_json = JSON.parse(
-  '{"contractType":"RUSTONN_PHYS_PERSON", "currencyType":"", "currencyKind":"", "contractDuration":1}'
+  '{"contractType":"RUSTONN_PHYS_PERSON", "currencyType":"", "currencyKind":"", "contractDuration":2}'
 );
 var first_page_json_response;
 
+// проверяем контракт при инициализации приложения
+if (first_page_json.contractType != "PUGACHEV_PHYS_PERSON") {
+  // если выбран контракт, отличный от "PUGACHEV_PHYS_PERSON", отключаем выбор валюты USDT
+  document.getElementById("USDT").disabled = true;
+  document.getElementById("USDT").classList.add("button-currency-disabled");
+}
+
+function setToDefault()
+{
+  first_page_json.contractType = "RUSTONN_PHYS_PERSON";
+  first_page_json.currencyType = "";
+  first_page_json.currencyKind = "";
+  first_page_json.contractDuration = 2;
+
+  document.getElementById("USDT").disabled = true;
+  document.getElementById("USDT").classList.add("button-currency-disabled");
+  // снимаем активность с кнопок
+  document.getElementById("USDT").classList.remove("button-currency-active");
+  document.getElementById("ROUBLES").classList.remove("button-currency-active");
+  document.getElementById("DOLLARS").classList.remove("button-currency-active");
+  document.getElementById("EURO").classList.remove("button-currency-active");
+
+  // сбрасываем состояние кнопок и выбранного типа оплаты
+  document.getElementById("CASH").classList.remove("button-money-disabled");
+  document.getElementById("NON_CASH").classList.remove("button-money-active");
+  document.getElementById("CASH").classList.remove("button-money-active");
+  const hint = document.getElementById("city-hint");
+  hint.style.visibility = "hidden";
+
+
+  document.getElementById("CASH").disabled = false;
+}
+
 // функция для отображения хинта для типа контракта
-function contract() {
+function contractHint() {
   const selectElement = document.getElementById("document_type_select");
   selectElement.addEventListener("change", (event) => {
+    setToDefault();
     const hint = document.getElementById("contract-hint");
-    first_page_json.contractType = event.target.value;
+    if (event.target.value == "RUSTONN_PHYS_PERSON")
+    {
+      hint.style.visibility = "visible";
+    }
+    else
+    {
+      hint.style.visibility = "hidden";
+      if (event.target.value == "PUGACHEV_PHYS_PERSON")
+      {
+        // если выбран контракт "PUGACHEV_PHYS_PERSON", разрешаем выбирать валюту USDT
+        document.getElementById("USDT").disabled = false;
+        document.getElementById("USDT").classList.remove("button-currency-disabled");
+        //document.getElementById("USDT").classList.remove("button-currency-active");
+      }
+    }
+
     // устанавливаем тип контракта
+    first_page_json.contractType = event.target.value;
     console.log(first_page_json.contractType);
   });
 }
 
-// функция для обработки валюты
+// функция обработки валюты
 function currency() {
   function clear() {
-    buttons = document.querySelectorAll(".button-currency");
-    buttonsArray = Array.from(buttons);
-    buttonsArray.forEach((button, index) => {
-      button.classList.remove("button-currency-active");
-    });
+  buttons = document.querySelectorAll(".button-currency");
+  buttonsArray = Array.from(buttons);
+  buttonsArray.forEach((button, index) => {
+    button.classList.remove("button-currency-active");
+  });
   }
   const curCurrency = document.getElementsByClassName("button-currency");
   for (var i = 0; i < curCurrency.length; ++i) {
-    curCurrency[i].addEventListener("click", (event) => {
-      // Check if the clicked target is a button
-      //console.log(`Clicked button: ${event.target.id}`);
-      clear();
-      event.target.classList.toggle("button-currency-active");
-      // заполняем поле в JSON
-      first_page_json.currencyType = event.target.id;
-      console.log(first_page_json.currencyType);
-    });
+  curCurrency[i].addEventListener("click", (event) => {
+    clear();
+    event.target.classList.toggle("button-currency-active");
+    // заполняем поле в JSON
+    first_page_json.currencyType = event.target.id;
+    console.log(first_page_json.currencyType);
+ 
+    if (event.target.id != "USDT")
+    {
+      // сбрасываем состояние кнопок и выбранного типа оплаты
+      document.getElementById("CASH").classList.remove("button-money-disabled");
+      document.getElementById("NON_CASH").classList.remove("button-money-active");
+      document.getElementById("CASH").disabled = false;
+    }
+    // если выбрана валюта USDT, отключаем кнопку перевода займа
+    else {
+      document.getElementById("CASH").classList.add("button-money-disabled");
+      document.getElementById("CASH").disabled = true;
+      // автоматически выбираем наличную оплату
+      // спровоцируем клик-событие внутри функции cash()
+      document.getElementById("NON_CASH").click();
+    }
+  });
   }
-}
+ }
 
+// функция обработки вкладки выберите способ оплаты
 function money() {
   cash();
   nonCash();
 }
 
+// функция обработки срока договора
+function contractDur() {
+  duration = document.getElementById("contract_term");
+  duration.addEventListener("change", (event) => {
+      first_page_json.contractDuration = event.target.value;
+      console.log(first_page_json.contractDuration);
+  });
+}
+
+// наличный рассчет
 function cash() {
   button = document.getElementById("CASH");
   console.log("cash");
@@ -59,6 +134,7 @@ function cash() {
   });
 }
 
+// безналичный рассчет
 function nonCash() {
   const button = document.getElementById("NON_CASH");
   console.log("nonCash");
@@ -75,6 +151,7 @@ function nonCash() {
   });
 }
 
+// проверяем, что все поля были заполнены
 function isAllFieldsFilled(jsonObj) {
   for (let key in jsonObj) {
     if (
@@ -96,7 +173,9 @@ function onNextPage() {
       " " +
       first_page_json.currencyType +
       " " +
-      first_page_json.currencyKind
+      first_page_json.currencyKind +
+      " " +
+      first_page_json.contractDuration
   );
   if (isAllFieldsFilled(first_page_json))
   {
@@ -124,6 +203,7 @@ function onNextPage() {
   }
 }
 
-contract();
+contractHint();
+contractDur();
 currency();
 money();
