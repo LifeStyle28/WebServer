@@ -15,12 +15,6 @@ namespace json = boost::json;
 namespace logging = boost::log;
 using namespace std::literals;
 
-struct Archive
-{
-    Archive() = delete;
-    static constexpr std::string_view DOCS_ZIP = "docs.zip"sv;
-};
-
 CreateConnectionError::CreateConnectionError(Reason reason) :
     std::runtime_error{"Failed to bring tag values"s},
     m_reason{reason}
@@ -112,39 +106,6 @@ static void call_script(const std::string& savePath, const std::string& jsonConf
 }
 
 /**
- * @brief      Removes an old archive.
- *
- * @param[in]  savePath  The save path
- */
-static void remove_old_archive(const std::string& savePath)
-{
-    std::stringstream command;
-    command << "rm -rf "sv;
-    command << savePath;
-    command << Archive::DOCS_ZIP;
-    std::system(command.str().c_str());
-}
-
-/**
- * @brief      Makes an archive.
- *
- * @param[in]  savePath  The save path
- */
-static void make_archive(const std::string& savePath)
-{
-    std::stringstream command;
-    command << "zip -rj "sv;
-    command << savePath;
-    command << Archive::DOCS_ZIP;
-    command << " ";
-    command << savePath;
-    if (std::system(command.str().c_str()) != 0)
-    {
-        throw std::runtime_error{"Failed to create tar"s};
-    }
-}
-
-/**
  * @brief      Запускает py-script
  *
  * @param[in]  savePath          директория для сохранения
@@ -160,8 +121,6 @@ static void start_script(const std::string& savePath, const std::string& jsonCon
 {
     make_dir(savePath); ///< создает папку для результатов
     call_script(savePath, jsonConfig, scriptPath, docNums, contractDuration, percent); ///< вызывает скрипт
-    remove_old_archive(savePath); ///< удаляет старый архив, если он есть
-    make_archive(savePath); ///< упаковывает документы в архив
 }
 
 std::string CreateResultFileUseCase::CreateFile(const std::string& body, const Token& token) const
@@ -188,9 +147,23 @@ std::string CreateResultFileUseCase::CreateFile(const std::string& body, const T
         std::uniform_int_distribution<uint64_t> dist;
         const std::string folderName(std::to_string(dist(generator))); ///< название сгенерированной папки
         const std::string generatedFolderPath(m_resultPath.string() + folderName + "/"); ///< полный путь сгенерированной папки
-        const std::string path = generatedFolderPath + std::string(Archive::DOCS_ZIP);
+
         start_script(generatedFolderPath, body, m_scriptPath, docNums.str(),
             connection->GetContractDuration(), m_config.GetPercent());
+
+        std::string path;
+        for (const auto & entry : fs::directory_iterator(generatedFolderPath))
+        {
+            if (entry.path().string().find(".zip") != std::string::npos)
+            {
+                path = entry.path().string();
+                break;
+            }
+        }
+        if (path.empty())
+        {
+            throw std::runtime_error("Can't find zip file"s);
+        }
 
         auto make_result_path = [&path](fs::path webPath)
         {

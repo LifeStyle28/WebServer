@@ -304,6 +304,31 @@ def add_extra_tags(tag_dict):
 def make_fio_date(tag_dict):
         return tag_dict['@<DATE>@'] + ' ' + tag_dict['@<FIO_SHORT>@']
 
+def human_format(num):
+    num = float('{:.3g}'.format(num))
+    magnitude = 0
+    while abs(num) >= 1000:
+        magnitude += 1
+        num /= 1000.0
+    return '{}{}'.format('{:f}'.format(num).rstrip('0').rstrip('.'), ['', 'к', 'кк', 'ккк', 'кккк'][magnitude])
+
+def make_zip_name(date, sum, currency_char, fio_short):
+        fio_short = fio_short.replace('.', '')
+        fio_short = fio_short.replace(' ', '')
+        result = date.replace('.', '') + '_' + human_format(int(sum.replace(' ', ''))) + '_' + currency_char + '_' + fio_short
+
+        return result;
+
+def get_currency_char(contract_num):
+        if contract_num == 10:
+                return '$'
+        elif contract_num == 11:
+                return '€'
+        elif contract_num == 12:
+                return '₮'
+        else:
+                return '₽'
+
 def make_docs():
         data = json.loads(str(sys.argv[1])) # загружаем шаблон
         tag_dict = {} # создаем словарь соответствия тэгов и значений
@@ -321,6 +346,9 @@ def make_docs():
                 save_name = str(sys.argv[2] + get_name_by_num(doc_num) + ' от ' + make_fio_date(tag_dict) + ".docx")
                 logging.debug(f"Name to save is {save_name}")
                 document.save(save_name)
+        command = 'zip -rj ' + str(sys.argv[2]) + make_zip_name(tag_dict['@<DATE>@'], tag_dict['@<SUMM_NUMBER>@'], get_currency_char(doc_nums[0]), tag_dict['@<FIO_SHORT>@']) + '.zip ' + str(sys.argv[2])
+        logging.debug(command)
+        os.system(command)
 
 if __name__ == "__main__":
         LOG_FULL_NAME = '/app/script/python_script.log'
