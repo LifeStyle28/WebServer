@@ -259,7 +259,7 @@ int main(int argc, const char* argv[])
     catch (const std::exception& ex)
     {
         json::value customData{{"exception"s, ex.what()}, {"code"s, EXIT_FAILURE}};
-        BOOST_LOG_TRIVIAL(info) << logging::add_value(additional_data, customData)
+        BOOST_LOG_TRIVIAL(fatal) << logging::add_value(additional_data, customData)
                                 << "server exited"sv;
         return EXIT_FAILURE;
     }

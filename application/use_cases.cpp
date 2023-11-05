@@ -13,12 +13,16 @@ using namespace boost_logger;
 namespace fs = std::filesystem;
 namespace json = boost::json;
 namespace logging = boost::log;
+using namespace std::literals;
 
-#define DOCS_ZIP "docs.zip"
-#define PERCENT_FILE "/app/templates/percent.txt"
+struct Archive
+{
+    Archive() = delete;
+    static constexpr std::string_view DOCS_ZIP = "docs.zip"sv;
+};
 
 CreateConnectionError::CreateConnectionError(Reason reason) :
-    std::runtime_error{"Failed to bring tag values"},
+    std::runtime_error{"Failed to bring tag values"s},
     m_reason{reason}
 {
 }
@@ -74,24 +78,12 @@ CreateResultFileUseCase::CreateResultFileUseCase(fs::path scriptPath, fs::path r
 static void make_dir(const std::string& savePath)
 {
     std::stringstream command;
-    command << "mkdir -p ";
+    command << "mkdir -p "sv;
     command << savePath;
     if (std::system(command.str().c_str()) != 0)
     {
-        throw std::runtime_error{"Failed to create folder"};
+        throw std::runtime_error{"Failed to create folder"s};
     }
-}
-
-static int get_percent()
-{
-    std::ifstream file(PERCENT_FILE);
-    if (file.is_open())
-    {
-        int percent;
-        file >> percent;
-        return percent;
-    }
-    throw std::runtime_error("Can't get percent from file: " PERCENT_FILE);
 }
 
 /**
@@ -102,19 +94,20 @@ static int get_percent()
  * @param[in]  scriptPath  The script path
  */
 static void call_script(const std::string& savePath, const std::string& jsonConfig,
-    const std::string& scriptPath, const std::string& docNums, size_t contractDuration)
+    const std::string& scriptPath, const std::string& docNums, size_t contractDuration,
+    const size_t percent)
 {
     std::stringstream command;
-    command << "python3 ";
+    command << "python3 "sv;
     command << '\'' << scriptPath << '\'' << ' '; ///< script path
     command << '\'' << jsonConfig << '\'' << ' '; ///< json-string
     command << '\'' << savePath << '\'' << ' '; ///< path for save
     command << '\'' << docNums << '\'' << ' ';
     command << '\'' << contractDuration << '\'' << ' ';
-    command << '\'' << get_percent() << '\'';
+    command << '\'' << percent << '\'';
     if (std::system(command.str().c_str()) != 0)
     {
-        throw std::runtime_error{"Failed to make documents with python-script"};
+        throw std::runtime_error{"Failed to make documents with python-script"s};
     }
 }
 
@@ -126,9 +119,9 @@ static void call_script(const std::string& savePath, const std::string& jsonConf
 static void remove_old_archive(const std::string& savePath)
 {
     std::stringstream command;
-    command << "rm -rf ";
+    command << "rm -rf "sv;
     command << savePath;
-    command << DOCS_ZIP;
+    command << Archive::DOCS_ZIP;
     std::system(command.str().c_str());
 }
 
@@ -140,23 +133,33 @@ static void remove_old_archive(const std::string& savePath)
 static void make_archive(const std::string& savePath)
 {
     std::stringstream command;
-    command << "zip -rj ";
+    command << "zip -rj "sv;
     command << savePath;
-    command << DOCS_ZIP;
+    command << Archive::DOCS_ZIP;
     command << " ";
     command << savePath;
     if (std::system(command.str().c_str()) != 0)
     {
-        throw std::runtime_error{"Failed to create tar"};
+        throw std::runtime_error{"Failed to create tar"s};
     }
 }
 
-//@ TODO завернуть в strand
+/**
+ * @brief      Запускает py-script
+ *
+ * @param[in]  savePath          директория для сохранения
+ * @param[in]  jsonConfig        файл конфигурации json
+ * @param[in]  scriptPath        директория скрипта
+ * @param[in]  docNums           номера документов
+ * @param[in]  contractDuration  длительность контракта
+ * @param[in]  percent           процент
+ */
 static void start_script(const std::string& savePath, const std::string& jsonConfig,
-    const std::string& scriptPath, const std::string& docNums, size_t contractDuration)
+    const std::string& scriptPath, const std::string& docNums, size_t contractDuration,
+    const size_t percent)
 {
     make_dir(savePath); ///< создает папку для результатов
-    call_script(savePath, jsonConfig, scriptPath, docNums, contractDuration); ///< вызывает скрипт
+    call_script(savePath, jsonConfig, scriptPath, docNums, contractDuration, percent); ///< вызывает скрипт
     remove_old_archive(savePath); ///< удаляет старый архив, если он есть
     make_archive(savePath); ///< упаковывает документы в архив
 }
@@ -166,7 +169,7 @@ std::string CreateResultFileUseCase::CreateFile(const std::string& body, const T
     const auto connection{m_connTokens.FindConnectionBy(token)};
     if (!connection)
     {
-        throw AuthorizationError{"Connection token has not been found"};
+        throw AuthorizationError{"Connection token has not been found"s};
     }
 
     std::stringstream docNums;
@@ -185,8 +188,9 @@ std::string CreateResultFileUseCase::CreateFile(const std::string& body, const T
         std::uniform_int_distribution<uint64_t> dist;
         const std::string folderName(std::to_string(dist(generator))); ///< название сгенерированной папки
         const std::string generatedFolderPath(m_resultPath.string() + folderName + "/"); ///< полный путь сгенерированной папки
-        const std::string path = generatedFolderPath + DOCS_ZIP;
-        start_script(generatedFolderPath, body, m_scriptPath, docNums.str(), connection->GetContractDuration()); ///< @TODO проверить пути и работу скрипта
+        const std::string path = generatedFolderPath + std::string(Archive::DOCS_ZIP);
+        start_script(generatedFolderPath, body, m_scriptPath, docNums.str(),
+            connection->GetContractDuration(), m_config.GetPercent());
 
         auto make_result_path = [&path](fs::path webPath)
         {
@@ -201,12 +205,11 @@ std::string CreateResultFileUseCase::CreateFile(const std::string& body, const T
     }
     catch (const std::exception& ex)
     {
-        json::value customData{{"exception", ex.what()}, {"code", EXIT_FAILURE}};
-        BOOST_LOG_TRIVIAL(info) << logging::add_value(additional_data, customData)
-                                << "server exited";
+        json::value data{{"exception"s, ex.what()}};
+        BOOST_LOG_TRIVIAL(error) << logging::add_value(additional_data, data);
         // @TODO отловить ошибки, которые реально могут возникнуть
     }
-    throw std::runtime_error("Can't create file");
+    throw std::runtime_error("Can't create file"s);
 }
 
 TimerUseCase::TimerUseCase(ConnectionTokens& connTokens) :

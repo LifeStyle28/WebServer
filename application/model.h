@@ -49,11 +49,12 @@ public:
     ~Config() = default;
     void AddContract(Contract contract);
     Contract* FindContractIndexBy(const Contract::Id id) const noexcept;
-    void SaveContractDuration(const size_t duration) noexcept;
+    void SetPercent(const size_t percent);
+    size_t GetPercent() const noexcept;
 private:
     ContractsStorage m_contracts;
     ContractIdToIndex m_contractIdToIndex;
-    size_t m_duration = 1;
+    size_t m_percent{0};
 };
 
 } // namespace model

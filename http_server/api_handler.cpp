@@ -20,7 +20,7 @@ namespace
 using namespace std::literals;
 
 // @TODO - не нравится дублирование этой функции в разных файлах
-static std::string json_val_as_string(const json::value& val)
+std::string json_val_as_string(const json::value& val)
 {
     return std::string(val.as_string());
 }
@@ -46,7 +46,7 @@ struct ErrorKey
     static constexpr boost::string_view MESSAGE_KEY{"message"};
 };
 
-static std::string MakeErrorJSON(std::string code, std::string message)
+std::string MakeErrorJSON(std::string code, std::string message)
 {
     return json::serialize(json::object{{ErrorKey::CODE_KEY, std::move(code)},
         {ErrorKey::MESSAGE_KEY, std::move(message)}});
@@ -195,7 +195,7 @@ static TagValuesRequest parse_tag_values_request(boost::string_view body)
     }
 }
 
-static json::object create_conn_result_to_json(app::CreateConnectionResult result)
+json::object create_conn_result_to_json(app::CreateConnectionResult result)
 {
     json::array tagValuesArr;
     for (const auto& tagValue : result.m_tagValues)
