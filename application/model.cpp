@@ -2,8 +2,6 @@
 
 #include <boost/scope_exit.hpp>
 
-#include <iostream>
-
 namespace model
 {
 
@@ -88,9 +86,24 @@ Contract* Config::FindContractIndexBy(const Contract::Id id) const noexcept
     return nullptr;
 }
 
-void Config::SaveContractDuration(const size_t duration) noexcept
+/**
+ * @brief      Установка процента по договору
+ *
+ * @param[in]  percent  процент
+ */
+void Config::SetPercent(const size_t percent)
 {
-    m_duration = duration;
+    m_percent = percent;
+}
+
+/**
+ * @brief      Возвращает процент
+ *
+ * @return     процент
+ */
+size_t Config::GetPercent() const noexcept
+{
+    return m_percent;
 }
 
 } // namespace model

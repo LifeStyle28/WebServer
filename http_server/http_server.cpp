@@ -18,7 +18,7 @@ void ReportError(beast::error_code ec, std::string where)
         {"text"s, ec.message()},
         {"where"s, where}
     };
-    BOOST_LOG_TRIVIAL(info) << boost::log::add_value(boost_logger::additional_data, custom_data)
+    BOOST_LOG_TRIVIAL(error) << boost::log::add_value(boost_logger::additional_data, custom_data)
                             << "error"sv;
 }
 

@@ -1,10 +1,10 @@
 #include "json_loader.h"
+#include "boost_logger.h"
 
 #include <fstream>
 
 #include <boost/json/object.hpp>
 #include <boost/json/parse.hpp>
-#include <boost/utility/string_view.hpp>
 
 namespace json_loader
 {
@@ -13,6 +13,8 @@ using namespace model;
 using namespace std::literals;
 namespace json = boost::json;
 namespace fs = std::filesystem;
+using namespace boost_logger;
+namespace logging = boost::log;
 
 namespace
 {
@@ -29,16 +31,31 @@ struct Tool
     static constexpr boost::string_view VALUE{"value"};
 };
 
-static std::string json_val_as_string(const json::value& val)
+enum class DefaultInvariants
+{
+    PERCENT = 22
+};
+
+/**
+ * @brief      конвертация из json value в std::string
+ *
+ * @param[in]  val   значение
+ *
+ * @return     сконвертированное значение
+ */
+std::string json_val_as_string(const json::value& val)
 {
     return std::string(val.as_string());
 }
 
 /**
  * Загружает поля контракта
- * @tagValue поле, включающее в себя поля key, tag и value
+ *
+ * @param[in]  tagValue  поле, включающее в себя поля key, tag и value
+ *
+ * @return     tagValue
  */
-static ContractTagValue load_tag_value(const json::value& tagValue)
+ContractTagValue load_tag_value(const json::value& tagValue)
 {
     ContractTagValue result;
     if (auto it = tagValue.as_object().find(Tool::KEY); it != tagValue.as_object().end())
@@ -58,9 +75,12 @@ static ContractTagValue load_tag_value(const json::value& tagValue)
 
 /**
  * Загружает контракты шаблона
- * @param contract контракт
+ *
+ * @param[in]  obj   json-объект
+ *
+ * @return     возвращает контракт
  */
-static Contract load_contract(const json::object& obj)
+Contract load_contract(const json::object& obj)
 {
     Contract contract{Contract::Id{json_val_as_string(obj.at(Tool::ID))}};
 
@@ -77,7 +97,14 @@ static Contract load_contract(const json::object& obj)
     return contract;
 }
 
-static std::vector<Contract> load_contracts(const json::array& array)
+/**
+ * @brief      Загружает контракты
+ *
+ * @param[in]  array  массив для парсинга
+ *
+ * @return     список возможных контрактов
+ */
+std::vector<Contract> load_contracts(const json::array& array)
 {
     std::vector<Contract> contracts;
     contracts.reserve(array.size());
@@ -91,11 +118,25 @@ static std::vector<Contract> load_contracts(const json::array& array)
 }
 
 /**
- * Загружает шаблон
- * @param obj json-объект
- * @return конфиг
+ * @brief      Загрузить процент
+ *
+ * @param[in]  val   значение для парсинга
+ *
+ * @return     процент в size_t
  */
-static Config load_config(const json::object& obj)
+size_t load_percent(const json::value& val)
+{
+    return val.as_int64();
+}
+
+/**
+ * Загружает шаблон
+ *
+ * @param      obj   json-объект
+ *
+ * @return     конфиг
+ */
+Config load_config(const json::object& obj)
 {
     const auto contracts = load_contracts(obj.at(Tool::CONTRACTS).as_array());
     Config config;
@@ -103,10 +144,33 @@ static Config load_config(const json::object& obj)
     {
         config.AddContract(contract);
     }
+
+    size_t percent = static_cast<size_t>(DefaultInvariants::PERCENT);
+    if (auto it = obj.find(ConfigToken::PERCENT); it != obj.end())
+    {
+        percent = load_percent(it->value());
+    }
+
+    {
+        json::value data{{"percent"s, percent}};
+        BOOST_LOG_TRIVIAL(debug) << logging::add_value(additional_data, data);
+    }
+
+    config.SetPercent(percent);
+
     return config;
 }
 
-static std::string load_file_as_string(const fs::path& jsonPath)
+} // anonymous namespace
+
+/**
+ * @brief      Загрузить файл в строку
+ *
+ * @param[in]  jsonPath  путь файла конфигурации json
+ *
+ * @return     json-файл в виде строки
+ */
+std::string load_file_as_string(const fs::path& jsonPath)
 {
     std::ifstream jsonStream{jsonPath};
     if (!jsonStream)
@@ -120,8 +184,6 @@ static std::string load_file_as_string(const fs::path& jsonPath)
     }
     return std::move(jsonStringStream).str();
 }
-
-} // anonymous namespace
 
 Config load_config(const fs::path& jsonPath)
 {
