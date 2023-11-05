@@ -152,7 +152,7 @@ std::string CreateResultFileUseCase::CreateFile(const std::string& body, const T
             connection->GetContractDuration(), m_config.GetPercent());
 
         std::string path;
-        for (const auto & entry : fs::directory_iterator(generatedFolderPath))
+        for (const auto& entry : fs::directory_iterator(generatedFolderPath))
         {
             if (entry.path().string().find(".zip") != std::string::npos)
             {

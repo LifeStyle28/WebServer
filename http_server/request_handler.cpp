@@ -143,9 +143,9 @@ static std::optional<std::string> decode_path(std::string_view target)
             {
                 return std::nullopt;
             }
-            if (char value; std::from_chars(it + 1, it + 2, value, 16).ec == std::errc{})
+            if (int value; std::from_chars(it + 1, it + 3, value, 16).ec == std::errc{})
             {
-                result.push_back(value);
+                result.push_back(static_cast<char>(value));
             }
             else
             {
