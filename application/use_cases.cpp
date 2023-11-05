@@ -1,7 +1,7 @@
 #include "use_cases.h"
 #include "boost_logger.h"
+#include "json_loader.h"
 
-#include <random>
 #include <fstream>
 
 #pragma GCC diagnostic ignored "-Wunused-result" // @TODO - ugly
@@ -10,10 +10,10 @@ namespace app
 {
 
 using namespace boost_logger;
+using namespace std::literals;
 namespace fs = std::filesystem;
 namespace json = boost::json;
 namespace logging = boost::log;
-using namespace std::literals;
 
 CreateConnectionError::CreateConnectionError(Reason reason) :
     std::runtime_error{"Failed to bring tag values"s},
@@ -193,6 +193,41 @@ TimerUseCase::TimerUseCase(ConnectionTokens& connTokens) :
 void TimerUseCase::Tick(const std::chrono::steady_clock::time_point& timeNow)
 {
     m_connTokens.Tick(timeNow);
+}
+
+ChangePercentUseCase::ChangePercentUseCase(model::Config& config, fs::path configJsonPath) :
+    m_config{config},
+    m_configJsonPath{configJsonPath}
+{
+}
+
+void ChangePercentUseCase::ChangePercent(const size_t percent)
+{
+    m_config.SetPercent(percent);
+
+    try
+    {
+        auto jsonString{json_loader::load_file_as_string(m_configJsonPath)};
+        auto jsonValue = json::parse(jsonString);
+
+        auto it{jsonValue.as_object().find(json_loader::ConfigToken::PERCENT)};
+        if (it != jsonValue.as_object().end())
+        {
+            it->value().as_int64() = percent;
+        }
+
+        std::ofstream out{m_configJsonPath};
+        if (out.is_open())
+        {
+            out << json::serialize(jsonValue);
+        }
+    }
+    catch (const std::exception& e)
+    {
+        json::value data{{"exception"s, e.what()}};
+        BOOST_LOG_TRIVIAL(error) << logging::add_value(additional_data, data);
+        throw ChangePercentError{"Percent saved in RAM. Try again to save it to ROM."s};
+    }
 }
 
 } // namespace app

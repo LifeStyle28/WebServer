@@ -39,6 +39,8 @@ RUN locale-gen ru_RU.UTF-8 && dpkg-reconfigure locales
 RUN apt update && apt install -y python3 python3-pip
 
 RUN mkdir /app && chmod 777 -R /app
+COPY ./templates /app/templates
+RUN chmod 777 /app/templates/config.json
 
 # Создадим пользователя admin
 RUN groupadd -r admin && useradd -mrg admin admin
@@ -53,7 +55,6 @@ RUN pip install docxcompose python-docx num-to-rus python-dateutil
 # Скопируем приложение из сборочного контейнера в директорию /app
 COPY --from=build /app/build/bin/web_server /app/
 COPY --from=build /app/build/lib/* /app/
-COPY ./templates /app/templates
 COPY ./script /app/script
 COPY ./web /app/web
 ENV LD_LIBRARY_PATH=/app/

@@ -221,10 +221,9 @@ int main(int argc, const char* argv[])
 
         // 3. Создаем экземпляр приложения
         model::Config config{json_loader::load_config(args->m_configJsonPath)};
-        std::filesystem::path scriptPath{args->m_scriptPath};
-        std::filesystem::path resultPath{args->m_resultPath};
         const auto webPath = (args->m_webPath) ? *args->m_webPath : "";
-        app::Application app{config, scriptPath, resultPath, webPath};
+        app::Application app{config, args->m_scriptPath, args->m_resultPath,
+            webPath, args->m_configJsonPath};
 
         // 4. Создаём обработчик HTTP-запросов
         auto handlerStrand = net::make_strand(ioc);

@@ -5,7 +5,6 @@
 
 #include <boost/json/object.hpp>
 #include <boost/json/parse.hpp>
-#include <boost/utility/string_view.hpp>
 
 namespace json_loader
 {
@@ -30,7 +29,6 @@ struct Tool
     static constexpr boost::string_view KEY{"key"};
     static constexpr boost::string_view TAG{"tag"};
     static constexpr boost::string_view VALUE{"value"};
-    static constexpr boost::string_view PERCENT{"percent"};
 };
 
 enum class DefaultInvariants
@@ -148,7 +146,7 @@ Config load_config(const json::object& obj)
     }
 
     size_t percent = static_cast<size_t>(DefaultInvariants::PERCENT);
-    if (auto it = obj.find(Tool::PERCENT); it != obj.end())
+    if (auto it = obj.find(ConfigToken::PERCENT); it != obj.end())
     {
         percent = load_percent(it->value());
     }
@@ -162,6 +160,8 @@ Config load_config(const json::object& obj)
 
     return config;
 }
+
+} // anonymous namespace
 
 /**
  * @brief      Загрузить файл в строку
@@ -184,8 +184,6 @@ std::string load_file_as_string(const fs::path& jsonPath)
     }
     return std::move(jsonStringStream).str();
 }
-
-} // anonymous namespace
 
 Config load_config(const fs::path& jsonPath)
 {

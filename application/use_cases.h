@@ -72,4 +72,20 @@ private:
     ConnectionTokens& m_connTokens;
 };
 
+class ChangePercentError : public std::runtime_error
+{
+public:
+    using runtime_error::runtime_error;
+};
+
+class ChangePercentUseCase
+{
+public:
+    ChangePercentUseCase(model::Config& config, std::filesystem::path configJsonPath);
+    void ChangePercent(const size_t percent);
+private:
+    model::Config& m_config;
+    std::filesystem::path m_configJsonPath;
+};
+
 } // namespace app

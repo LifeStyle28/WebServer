@@ -6,7 +6,6 @@
 #include <boost/json/parse.hpp>
 #include <boost/json/serialize.hpp>
 #include <boost/json/value.hpp>
-#include <cstdlib>
 
 namespace http_handler
 {
@@ -31,6 +30,7 @@ struct Endpoint
     static constexpr std::string_view API_PREFIX = "/api/"sv;
     static constexpr std::string_view TAG_VALUES = "/api/v1/prog/tag_values"sv;
     static constexpr std::string_view FILLED_CONTENT = "/api/v1/prog/filled_content"sv;
+    static constexpr std::string_view CHANGE_PERCENT = "/api/v1/prog/change_percent"sv;
 };
 
 struct CacheControl
@@ -51,6 +51,13 @@ std::string MakeErrorJSON(std::string code, std::string message)
     return json::serialize(json::object{{ErrorKey::CODE_KEY, std::move(code)},
         {ErrorKey::MESSAGE_KEY, std::move(message)}});
 }
+
+struct ChangePercentRequest
+{
+    size_t percent;
+
+    static constexpr json::string_view PERCENT = "percent";
+};
 
 struct TagValuesRequest
 {
@@ -168,7 +175,7 @@ public:
     }
 };
 
-static TagValuesRequest parse_tag_values_request(boost::string_view body)
+TagValuesRequest parse_tag_values_request(boost::string_view body)
 {
     try
     {
@@ -209,6 +216,27 @@ json::object create_conn_result_to_json(app::CreateConnectionResult result)
         {TagValuesResponse::TOKEN, *result.m_token},
         {TagValuesResponse::TAG_VALUES, std::move(tagValuesArr)}
     };
+}
+
+size_t parse_change_percent_request(boost::string_view body)
+{
+    try
+    {
+        const auto reqJson = json::parse(body);
+        const auto& obj = reqJson.as_object();
+
+        return obj.at(ChangePercentRequest::PERCENT).as_int64();
+    }
+    catch (const std::out_of_range& e)
+    {
+        throw BadRequest(BadRequestErrorCode::INVALID_ARGUMENT,
+            "Percent request parse error: "s + e.what());
+    }
+    catch (const boost::system::system_error& e)
+    {
+        throw BadRequest(BadRequestErrorCode::INVALID_ARGUMENT,
+            "Percent request parse error: "s + e.what());
+    }
 }
 
 struct CreateConnectionErrorReporter
@@ -264,6 +292,10 @@ private:
             {
                 return FilledContentHandle();
             }
+            else if (target == Endpoint::CHANGE_PERCENT)
+            {
+                return ChangePercentHandle();
+            }
             throw BadRequest("badRequest"s, "Invalid endpoint"s);
         }
         catch (const MethodNotAllowed& e)
@@ -316,13 +348,30 @@ private:
         EnsureMethod(http::verb::post);
         EnsureJsonContentType();
 
-
         return ExecuteAuthorized([this](const app::Token& token)
         {
             const auto fileName{m_app.GetResultFileName(m_request.body(), token)};
             json::object obj{{FilledContentResponse::FILE_NAME, fileName}};
             return m_builder.MakeJSONResponse(json::serialize(obj));
         });
+    }
+
+    StringResponse ChangePercentHandle() const
+    {
+        EnsureMethod(http::verb::post);
+        EnsureJsonContentType();
+
+        try
+        {
+            const auto percent{parse_change_percent_request(m_request.body())};
+            m_app.ChangePercent(percent);
+
+            return m_builder.MakePlainTextResponse("Change Percent is successful"sv);
+        }
+        catch (const app::ChangePercentError& e)
+        {
+            return m_builder.MakeInternalServerError(e.what());
+        }
     }
 
     void EnsureJsonContentType() const
