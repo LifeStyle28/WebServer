@@ -110,12 +110,9 @@ function contractHint() {
     console.log(result);
 
     const hint = document.getElementById("contract-hint");
-    if (event.target.value == "RUSTONN_PHYS_PERSON")
-    {
+    if (event.target.value == "RUSTONN_PHYS_PERSON") {
       hint.style.visibility = "visible";
-    }
-    else
-    {
+    } else {
       hint.style.visibility = "hidden";
     }
     // устанавливаем тип контракта
@@ -144,13 +141,16 @@ function currency() {
 
       // если выбрана валюта USDT, отключаем кнопку перевода займа
       if (event.target.id == "USDT") {
-        const usdtObject = usdtLogic.find(obj => obj.contractType === first_page_json.contractType);
+        const usdtObject = usdtLogic.find(
+          (obj) => obj.contractType === first_page_json.contractType
+        );
         disableButtons(usdtObject);
         const hint = document.getElementById("city-hint");
         hint.style.visibility = "hidden";
-      }
-      else {
-        const nonUsdtObject = currentContracts.find(obj => obj.contractType === first_page_json.contractType);
+      } else {
+        const nonUsdtObject = currentContracts.find(
+          (obj) => obj.contractType === first_page_json.contractType
+        );
         disableButtons(nonUsdtObject);
       }
     });
@@ -167,7 +167,7 @@ function money() {
 function contractDur() {
   duration = document.getElementById("contract_term");
   duration.addEventListener("change", (event) => {
-    first_page_json.contractDuration = event.target.value;
+    first_page_json.contractDuration = Number(event.target.value);
     console.log(first_page_json.contractDuration);
   });
 }
