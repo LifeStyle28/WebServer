@@ -44,6 +44,7 @@
   margin-top: 0.5%;
   font-size: smaller;
   text-align: left;
+  visibility: visible;
 }
 
 .buttons-currency {
@@ -72,6 +73,19 @@
   min-width: 113px;
   color: white;
   background-color: #5ba93a;
+}
+
+.button-currency-disabled {
+  width: 24%;
+  height: 40px;
+  outline: none;
+  border: none;
+  border-radius: 7px;
+  font-size: medium;
+  min-width: 113px;
+  color: white;
+  background-color: lightgray;
+  pointer-events: none;
 }
 
 /* Clear floats (clearfix hack) */
@@ -133,6 +147,18 @@ select {
     min-width: 230px;
     background-color: #5ba93a;
     color: white;
+}
+
+.button-money-disabled {
+  width: 49%;
+  height: 40px;
+  outline: none;
+  border: none;
+  border-radius: 7px;
+  font-size: medium;
+  min-width: 230px;
+  background-color: lightgray;
+  pointer-events: none;
 }
 
 .button-money-group:not(:last-child) {
