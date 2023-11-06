@@ -4,6 +4,6 @@ RUN apt update && \
       cron python3
 RUN mkdir -p /result
 RUN mkdir -p /cron
-COPY ./cron/crontab /etc/crontab
-COPY ./cron/dir_remover.py /cron
+COPY ./crontab /etc/crontab
+COPY ./dir_remover.py /cron
 ENTRYPOINT ["cron", "-f"]
