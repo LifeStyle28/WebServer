@@ -1,0 +1,17 @@
+volumes:
+  result_volume:
+services:
+  application:
+    build:
+      dockerfile: ./Dockerfile
+    ports:
+      - 80:8080
+    restart: on-failure
+    volumes:
+      - result_volume:/app/web/result:z
+  cron:
+    build:
+      dockerfile: ./cron/Dockerfile
+    volumes:
+      - result_volume:/result
+    restart: on-failure
