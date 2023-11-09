@@ -2,6 +2,7 @@
 #include "logging_request_handler.h"
 #include "boost_logger.h"
 #include "json_loader.h"
+#include "server_certificate.h"
 
 #include <iostream>
 #include <thread>
@@ -238,7 +239,10 @@ int main(int argc, const char* argv[])
         const std::string adressString = "0.0.0.0";
         const auto address = net::ip::make_address(adressString);
         constexpr net::ip::port_type port = 8080;
-        http_server::ServeHttp(ioc, {address, port},
+        boost::asio::ssl::context ctx{boost::asio::ssl::context::tlsv12};
+        load_server_certificate(ctx);
+
+        http_server::ServeHttp(ioc, ctx, {address, port},
             [&log_handler](tcp::endpoint endpoint, auto&& req, auto&& send)
             {
                 log_handler(endpoint, std::forward<decltype(req)>(req), std::forward<decltype(send)>(send));

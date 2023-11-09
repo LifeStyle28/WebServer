@@ -4,6 +4,7 @@
 #include <boost/asio/strand.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
+#include <boost/beast/ssl.hpp>
 #include <boost/system.hpp>
 
 namespace http_server
@@ -14,6 +15,7 @@ using tcp = net::ip::tcp;
 namespace sys = boost::system;
 namespace beast = boost::beast;
 namespace http = beast::http;
+namespace ssl = boost::asio::ssl;
 
 void ReportError(beast::error_code ec, std::string where);
 
@@ -26,7 +28,7 @@ public:
 
     void Run();
 protected:
-    explicit SessionBase(tcp::socket&& socket);
+    explicit SessionBase(tcp::socket&& socket, ssl::context& ctx);
 
     using HttpRequest = http::request<http::string_body>;
 
@@ -48,16 +50,19 @@ protected:
                           });
     }
 private:
+    void OnRun();
+    void OnHandshake(beast::error_code ec);
     void Read();
     void OnRead(beast::error_code ec, [[maybe_unused]] std::size_t bytes_read);
     void OnWrite(bool close, beast::error_code ec, [[maybe_unused]] std::size_t bytes_written);
     void Close();
+    void OnClose(beast::error_code ec);
     // Обработку запроса делегируем подклассу
     virtual void HandleRequest(HttpRequest&& request) = 0;
     virtual std::shared_ptr<SessionBase> GetSharedThis() = 0;
 private:
     // tcp_stream содержит внутри себя сокет и добавляет поддержку таймаутов
-    beast::tcp_stream m_stream;
+    beast::ssl_stream<beast::tcp_stream> m_stream;
     beast::flat_buffer m_buffer;
     HttpRequest m_request;
 };
@@ -67,8 +72,8 @@ class Session : public SessionBase, public std::enable_shared_from_this<Session<
 {
 public:
     template <typename Handler>
-    Session(tcp::socket&& socket, Handler&& request_handler) :
-        SessionBase(std::move(socket)),
+    Session(tcp::socket&& socket, ssl::context& ctx, Handler&& request_handler) :
+        SessionBase(std::move(socket), ctx),
         m_requestHandler(std::forward<Handler>(request_handler))
     {
     }
@@ -96,11 +101,13 @@ class Listener : public std::enable_shared_from_this<Listener<RequestHandler>>
 {
 public:
     template <typename Handler>
-    Listener(net::io_context& ioc, const tcp::endpoint& endpoint, Handler&& request_handler) :
-        m_ioc(ioc),
-        // Обработчики асинхронных операций m_acceptor будут вызываться в своём strand
-        m_acceptor(net::make_strand(ioc)),
-        m_requestHandler(std::forward<Handler>(request_handler))
+    Listener(net::io_context& ioc, ssl::context& ctx,
+        const tcp::endpoint& endpoint, Handler&& request_handler) :
+            m_ioc(ioc),
+            m_ctx(ctx),
+            // Обработчики асинхронных операций m_acceptor будут вызываться в своём strand
+            m_acceptor(net::make_strand(ioc)),
+            m_requestHandler(std::forward<Handler>(request_handler))
     {
         // Открываем acceptor, используя протокол (IPv4 или IPv6), указанный в endpoint
         m_acceptor.open(endpoint.protocol());
@@ -159,21 +166,23 @@ private:
 
     void AsyncRunSession(tcp::socket&& socket)
     {
-        std::make_shared<Session<RequestHandler>>(std::move(socket), m_requestHandler)->Run();
+        std::make_shared<Session<RequestHandler>>(std::move(socket), m_ctx, m_requestHandler)->Run();
     }
     net::io_context& m_ioc;
+    ssl::context& m_ctx;
     tcp::acceptor m_acceptor;
     RequestHandler m_requestHandler;
 };
 
 template <typename RequestHandler>
-void ServeHttp(net::io_context& ioc, const tcp::endpoint& endpoint, RequestHandler&& handler)
+void ServeHttp(net::io_context& ioc, ssl::context& ctx,
+    const tcp::endpoint& endpoint, RequestHandler&& handler)
 {
     // При помощи decay_t исключим ссылки из типа RequestHandler,
     // чтобы Listener хранил RequestHandler по значению
     using MyListener = Listener<std::decay_t<RequestHandler>>;
 
-    std::make_shared<MyListener>(ioc, endpoint, std::forward<RequestHandler>(handler))->Run();
+    std::make_shared<MyListener>(ioc, ctx, endpoint, std::forward<RequestHandler>(handler))->Run();
 }
 
 }  // namespace http_server

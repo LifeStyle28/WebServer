@@ -22,8 +22,8 @@ void ReportError(beast::error_code ec, std::string where)
                             << "error"sv;
 }
 
-SessionBase::SessionBase(tcp::socket&& socket) :
-    m_stream(std::move(socket))
+SessionBase::SessionBase(tcp::socket&& socket, ssl::context& ctx) :
+    m_stream(std::move(socket), ctx)
 {
 }
 
@@ -36,19 +36,37 @@ void SessionBase::Run()
     // Вызываем метод Read, используя executor объекта m_stream.
     // Таким образом вся работа со m_stream будет выполняться, используя его executor
     net::dispatch(m_stream.get_executor(),
-                  beast::bind_front_handler(&SessionBase::Read, GetSharedThis()));
+        beast::bind_front_handler(&SessionBase::OnRun, GetSharedThis()));
 }
 
 tcp::endpoint SessionBase::GetEndpoint() const
 {
-    return m_stream.socket().remote_endpoint();
+    return beast::get_lowest_layer(m_stream).socket().remote_endpoint();
+}
+
+void SessionBase::OnRun()
+{
+    beast::get_lowest_layer(m_stream).expires_after(30s);
+
+    m_stream.async_handshake(ssl::stream_base::server,
+        beast::bind_front_handler(&SessionBase::OnHandshake, GetSharedThis()));
+}
+
+void SessionBase::OnHandshake(beast::error_code ec)
+{
+    if (ec)
+    {
+        return ReportError(ec, "handshake");
+    }
+
+    Read();
 }
 
 void SessionBase::Read()
 {
     // Очищаем запрос от прежнего значения (метод Read может быть вызван несколько раз)
     m_request = {};
-    m_stream.expires_after(30s);
+    beast::get_lowest_layer(m_stream).expires_after(30s);
     // Считываем m_request из m_stream, используя m_buffer для хранения считанных данных
     http::async_read(m_stream, m_buffer, m_request,
                      // По окончании операции будет вызван метод OnRead
@@ -89,8 +107,17 @@ void SessionBase::OnWrite(bool close, beast::error_code ec,
 
 void SessionBase::Close()
 {
-    beast::error_code ec;
-    m_stream.socket().shutdown(tcp::socket::shutdown_send, ec);
+    beast::get_lowest_layer(m_stream).expires_after(30s);
+
+    m_stream.async_shutdown(beast::bind_front_handler(&SessionBase::OnClose, GetSharedThis()));
+}
+
+void SessionBase::OnClose(beast::error_code ec)
+{
+    if (ec)
+    {
+        return ReportError(ec, "shutdown");
+    }
 }
 
 }  // namespace http_server

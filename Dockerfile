@@ -19,6 +19,7 @@ COPY ./http_server /app/http_server
 COPY ./logger /app/logger
 COPY CMakeLists.txt /app/
 COPY main.cpp /app/
+COPY ./server_certificate.h /app
 
 RUN cd /app/build && \
     cmake -DCMAKE_BUILD_TYPE=Release .. && \
@@ -37,6 +38,25 @@ RUN locale-gen ru_RU.UTF-8 && dpkg-reconfigure locales
 
 # Установим python v3 и pip
 RUN apt update && apt install -y python3 python3-pip
+
+# Setup OpenSSL
+RUN apt update && apt install -y wget
+ARG OPENSSL_VERSION=1.1.1d
+RUN wget https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz
+RUN tar -zxvf openssl-${OPENSSL_VERSION}.tar.gz
+# Fix error `openssl: error while loading shared libraries: libssl.so.1.1: cannot open shared object file: No such file or directory`. Reference: https://github.com/openssl/openssl/issues/3993
+RUN cd openssl-${OPENSSL_VERSION} && \
+    ./config \
+    --debug \
+    --prefix=/usr/local \
+    --libdir=/lib \
+    --openssldir=/usr/local/ssl && \
+    make && make install
+# Add /usr/local/openssl/lib to /etc/ld.so.conf and then run the command `ldconfig`
+RUN echo '/usr/local/ssl/lib' >> /etc/ld.so.conf
+RUN ldconfig
+RUN echo 'export LD_LIBRARY_PATH=/usr/local/ssl/lib' >> ~/.bash_profile && . ~/.bash_profile
+RUN openssl version
 
 RUN mkdir /app && chmod 777 -R /app
 COPY ./templates /app/templates

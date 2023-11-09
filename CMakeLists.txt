@@ -14,6 +14,7 @@ endif()
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
+find_package(OpenSSL REQUIRED)
 
 # boost.beast будет использовать std::string_view вместо boost::string_view
 add_definitions(-DBOOST_BEAST_USE_STD_STRING_VIEW)
