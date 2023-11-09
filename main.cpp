@@ -239,7 +239,7 @@ int main(int argc, const char* argv[])
         const std::string adressString = "0.0.0.0";
         const auto address = net::ip::make_address(adressString);
         constexpr net::ip::port_type port = 8080;
-        boost::asio::ssl::context ctx{boost::asio::ssl::context::tlsv12};
+        boost::asio::ssl::context ctx{boost::asio::ssl::context::sslv23};
         load_server_certificate(ctx);
 
         http_server::ServeHttp(ioc, ctx, {address, port},

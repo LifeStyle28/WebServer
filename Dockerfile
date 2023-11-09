@@ -61,6 +61,8 @@ RUN openssl version
 RUN mkdir /app && chmod 777 -R /app
 COPY ./templates /app/templates
 RUN chmod 777 /app/templates/config.json
+COPY ./certs /app/certs
+RUN chmod 777 -R /app/certs
 
 # Создадим пользователя admin
 RUN groupadd -r admin && useradd -mrg admin admin
