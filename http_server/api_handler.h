@@ -14,6 +14,7 @@ public:
     explicit ApiHandler(app::Application& app);
 
     bool IsApiRequest(const StringRequest& request) const;
+    bool IsOptionsRequest(const StringRequest& request) const;
     StringResponse HandleApiRequest(const StringRequest& request);
 private:
     app::Application& m_app;

@@ -10,12 +10,10 @@
 namespace http_handler
 {
 
-using namespace std::literals;
-namespace json = boost::json;
-
 namespace
 {
 
+namespace json = boost::json;
 using namespace std::literals;
 
 // @TODO - не нравится дублирование этой функции в разных файлах
@@ -37,6 +35,15 @@ struct CacheControl
 {
     CacheControl() = delete;
     static constexpr std::string_view NO_CACHE = "no-cache"sv;
+};
+
+struct AccessControl
+{
+    AccessControl() = delete;
+    static constexpr std::string_view ORIGIN = "https://www.rustonn.ru"sv;
+    static constexpr std::string_view CREDENTIALS = "true"sv;
+    static constexpr std::string_view METHODS = "GET, HEAD, POST, OPTIONS"sv;
+    static constexpr std::string_view HEADERS = "Content-Type, Authorization"sv;
 };
 
 struct ErrorKey
@@ -104,7 +111,7 @@ struct UnauthorizedErrorCode
 {
     UnauthorizedErrorCode() = delete;
     const inline static std::string INVALID_TOKEN = "invalidToken"s;
-    const inline static std::string UNKNOWN_TOKEN = "unknownToken";
+    const inline static std::string UNKNOWN_TOKEN = "unknownToken"s;
 };
 
 class APIError : public std::runtime_error
@@ -271,6 +278,8 @@ public:
     {
         StringResponse response = HandleImpl();
         response.set(http::field::cache_control, CacheControl::NO_CACHE);
+        response.set(http::field::access_control_allow_origin, AccessControl::ORIGIN);
+        response.set(http::field::access_control_allow_credentials, AccessControl::CREDENTIALS);
         if (m_request.method() == http::verb::head)
         {
             response.prepare_payload();
@@ -283,6 +292,14 @@ private:
     {
         try
         {
+            if (m_request.method() == http::verb::options)
+            {
+                auto response = m_builder.MakePlainTextResponse("");
+                response.set(http::field::access_control_allow_methods, AccessControl::METHODS);
+                response.set(http::field::access_control_allow_headers, AccessControl::HEADERS);
+                return response;
+            }
+
             const auto target = m_request.target();
             if (target == Endpoint::TAG_VALUES)
             {
@@ -464,6 +481,11 @@ ApiHandler::ApiHandler(app::Application& app) : m_app{app}
 bool ApiHandler::IsApiRequest(const StringRequest& request) const
 {
     return request.target().starts_with(Endpoint::API_PREFIX);
+}
+
+bool ApiHandler::IsOptionsRequest(const StringRequest& request) const
+{
+    return request.method() == http::verb::options;
 }
 
 StringResponse ApiHandler::HandleApiRequest(const StringRequest& request)

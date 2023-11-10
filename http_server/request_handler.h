@@ -26,7 +26,7 @@ public:
 
         try
         {
-            if (m_apiHandler.IsApiRequest(req))
+            if (m_apiHandler.IsApiRequest(req) || m_apiHandler.IsOptionsRequest(req))
             {
                 auto handle =
                     [self = shared_from_this(), send,
