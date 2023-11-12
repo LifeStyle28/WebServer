@@ -9,7 +9,7 @@ bash ${SCRIPT_FODLER}/build.sh ${PROJ_DIR} || exit 1
 
 python3 -m venv ${PROJ_DIR}/.venv
 
-source ${BASE_DIR}/.venv/bin/activate
+source ${PROJ_DIR}/.venv/bin/activate
 
 export IMAGE_NAME=web_server
 

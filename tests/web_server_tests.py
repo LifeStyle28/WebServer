@@ -27,7 +27,8 @@ def run_server():
         "/app/web_server",
         "--result-path", "/app/result/",
         "--config-file", "/app/templates/config.json",
-        "--script-path", "/app/script/script.py"
+        "--script-path", "/app/script/script.py",
+        "--certs-path", "/app/certs/"
     ]
     kwargs = {
         'detach': True,
@@ -50,7 +51,7 @@ def run_server():
             break
         time.sleep(0.001)
 
-    server = utils.Server(f'http://{server_domain}:{server_port}/')
+    server = utils.Server(f'https://{server_domain}:{server_port}/')
     try:
         yield server, container
     finally:
@@ -59,16 +60,15 @@ def run_server():
         except docker.errors.APIError:
             pass
 
-@pytest.mark.parametrize('method', ['GET'])
+@pytest.mark.parametrize('method', ['POST'])
 def test_simple(method):
     with run_server() as (server, container):
         url = '/api/v1/prog/tag_values'
-        header = {'content-type': 'application/json', 'Accept': 'application/json'}
         body = {
             "contractType": "RUSTONN_PHYS_PERSON",
             "currencyType": "ROUBLES",
             "currencyKind": "CASH",
             "contractDuration": 2
         }
-        res: requests.Response = server.request(method, header, url, json = body)
+        res: requests.Response = server.post(url, data = body)
         assert res.status_code == 200
