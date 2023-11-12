@@ -341,6 +341,10 @@ def get_currency_char(contract_num):
         else:
                 return '₽'
 
+def create_extra_field_file(tag_dict):
+        if len(tag_dict['@<EXTRA_FIELD>@']) != 0: # если есть доп.поле, то вывести в отдельный файл
+                os.system('echo "' + tag_dict['@<EXTRA_FIELD>@'] + '" > ' + str(sys.argv[2]) + 'Примечания.txt')
+
 def make_docs():
         data = json.loads(str(sys.argv[1])) # загружаем шаблон
         tag_dict = {} # создаем словарь соответствия тэгов и значений
@@ -358,7 +362,8 @@ def make_docs():
                 save_name = str(sys.argv[2] + get_name_by_num(doc_num) + ' от ' + make_fio_date(tag_dict) + ".docx")
                 logging.debug(f"Name to save is {save_name}")
                 document.save(save_name)
-        command = 'zip -rj ' + str(sys.argv[2]) + make_zip_name(tag_dict['@<DATE>@'], tag_dict['@<SUMM_NUMBER>@'], get_currency_char(doc_nums[0]), tag_dict['@<FIO_SHORT>@']) + '.zip ' + str(sys.argv[2])
+        create_extra_field_file(tag_dict)
+        command = 'cd ' + str(sys.argv[2]) + ' && 7z a ' + make_zip_name(tag_dict['@<DATE>@'], tag_dict['@<SUMM_NUMBER>@'], get_currency_char(doc_nums[0]), tag_dict['@<FIO_SHORT>@']) + '.7z ' + './'
         logging.debug(command)
         os.system(command)
 

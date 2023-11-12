@@ -30,7 +30,7 @@ FROM ubuntu:22.04 as run
 
 ENV DEBIAN_FRONTEND noninteractive.
 RUN apt-get update
-RUN apt-get install -y language-pack-ru zip
+RUN apt-get install -y language-pack-ru p7zip-full
 ENV LANGUAGE ru_RU.UTF-8
 ENV LANG ru_RU.UTF-8
 ENV LC_ALL ru_RU.UTF-8

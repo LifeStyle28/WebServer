@@ -154,7 +154,7 @@ std::string CreateResultFileUseCase::CreateFile(const std::string& body, const T
         std::string path;
         for (const auto& entry : fs::directory_iterator(generatedFolderPath))
         {
-            if (entry.path().string().find(".zip") != std::string::npos)
+            if (entry.path().string().find(".7z") != std::string::npos)
             {
                 path = entry.path().string();
                 break;
@@ -162,7 +162,7 @@ std::string CreateResultFileUseCase::CreateFile(const std::string& body, const T
         }
         if (path.empty())
         {
-            throw std::runtime_error("Can't find zip file"s);
+            throw std::runtime_error("Can't find 7-zip file"s);
         }
 
         auto make_result_path = [&path](fs::path webPath)
