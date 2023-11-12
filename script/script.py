@@ -60,6 +60,9 @@ def fill_cell_table(table, column_num, text, row_set = 1):
                                         continue
                                 value.paragraphs[0].runs[0].text = text
 
+def fill_last_payment(table, column_num, payment, sum_payments, months, currency = ''):
+        table.columns[column_num].cells[-2].paragraphs[0].runs[0].text = space_num(sum_payments - payment * (months - 1)) + currency
+
 def set_cell_border(cell: _Cell, **kwargs):
     tc = cell._tc
     tcPr = tc.get_or_add_tcPr()
@@ -146,19 +149,21 @@ def make_tables(document, type, tag_dict):
         elif type <= 9:
                 make_table_2(document, tag_dict, ' рублей')
         elif type <= 10:
-                make_table_3(document, tag_dict, 'долларов США')
+                make_table_3(document, tag_dict, ' долларов США')
         elif type <= 11:
-                make_table_3(document, tag_dict, 'Евро')
+                make_table_3(document, tag_dict, ' Евро')
         elif type == 12:
                 make_table_2(document, tag_dict, ' USDT TRC-20')
 
 def make_table_1(document, tag_dict):
-        months = int(sys.argv[4]) * 12
+        years = int(sys.argv[4])
+        months = years * 12
         logging.debug('make_table_1')
         date = datetime.datetime.strptime(tag_dict['@<DATE>@'], '%d.%m.%Y')
         loan_sum = int(tag_dict['@<SUMM_NUMBER>@'].replace(' ', ''))
 
-        payment = loan_sum * int(tag_dict['@<PERCENT_NUMBER>@']) * months // (1200 * months)
+        sum_payments = (loan_sum * int(tag_dict['@<PERCENT_NUMBER>@']) * years) // 100
+        payment = (sum_payments // (months * 100)) * 100
 
         hold_sum = payment * 13 // 100
         if (payment * 13) % 100 > 0:
@@ -171,24 +176,27 @@ def make_table_1(document, tag_dict):
                 if table.rows[0].cells[0].text  == '№ п/п':
                         fill_cell_date(table, 1, date) # дата погашения
                         fill_cell_table(table, 2, space_num(payment)) # сумма платежа
+                        fill_last_payment(table, 2, payment, sum_payments, months) # последний платеж
                         fill_cell_table(table, 3, space_num(hold_sum)) # удерживаемая сумма налога
                         fill_cell_table(table, 4, space_num(result_sum)) # итоговая сумма выплаты Займодавцу
                         fill_with_minuses(table, 5) # сумма основного долга, выставление минусов
                         table.columns[5].cells[-2].paragraphs[0].runs[0].text = space_num(loan_sum) + ' (' + str(Converter().convert(loan_sum)) + ') рублей' # сумма основного долга
 
                         # Заполнение ИТОГО
-                        table.rows[-1].cells[2].paragraphs[0].runs[0].text = space_num(payment * months) + ' (' + str(Converter().convert(payment * months)) + ') рублей' # сумма платежа
+                        table.rows[-1].cells[2].paragraphs[0].runs[0].text = space_num(sum_payments) + ' (' + str(Converter().convert(sum_payments)) + ') рублей' # сумма платежа
                         table.rows[-1].cells[3].paragraphs[0].runs[0].text = space_num(hold_sum * months) + ' (' + str(Converter().convert(hold_sum * months)) + ') рублей' # удерживаемая сумма налога
                         table.rows[-1].cells[4].paragraphs[0].runs[0].text = space_num(result_sum * months) + ' (' + str(Converter().convert(result_sum * months)) + ') рублей' # утоговая сумма выплаты Займодавцу
                         table.rows[-1].cells[5].paragraphs[0].runs[0].text = space_num(loan_sum) + ' (' + str(Converter().convert(loan_sum)) + ') рублей' # сумма основного долга
 
 def make_table_2(document, tag_dict, currency):
         logging.debug('make_table_2')
-        months = int(sys.argv[4]) * 12
+        years = int(sys.argv[4])
+        months = years * 12
         date = datetime.datetime.strptime(tag_dict['@<DATE>@'], '%d.%m.%Y')
         loan_sum = int(tag_dict['@<SUMM_NUMBER>@'].replace(' ', ''))
 
-        payment = loan_sum * int(tag_dict['@<PERCENT_NUMBER>@']) * months // (1200 * months)
+        sum_payments = (loan_sum * int(tag_dict['@<PERCENT_NUMBER>@']) * years) // 100
+        payment = (sum_payments // (months * 100)) * 100
 
         # проверка на нужную таблицу
         for table in document.tables:
@@ -197,31 +205,35 @@ def make_table_2(document, tag_dict, currency):
 
                         fill_cell_date(table, 1, date) # дата погашения
                         fill_cell_table(table, 2, space_num(payment) + currency) # сумма платежа
+                        fill_last_payment(table, 2, payment, sum_payments, months, currency) # последний платеж
 
                         table.columns[3].cells[1 + months].paragraphs[0].runs[0].text = space_num(loan_sum) + currency # сумма основного долга
 
                         # Заполнение ИТОГО
-                        table.rows[-1].cells[2].paragraphs[0].runs[0].text = space_num(payment * months) + ' (' + str(Converter().convert(payment * months)) + ')' + currency # сумма платежа
+                        table.rows[-1].cells[2].paragraphs[0].runs[0].text = space_num(sum_payments) + ' (' + str(Converter().convert(sum_payments)) + ')' + currency # сумма платежа
                         if (currency != ' USDT TRC-20'):
                                 table.rows[-1].cells[3].paragraphs[0].runs[0].text = space_num(loan_sum) + ' (' + str(Converter().convert(loan_sum)) + ')' + currency # сумма основного долга
 
 def make_table_3(document, tag_dict, currency):
         logging.debug('make_table_3')
-        months = int(sys.argv[4]) * 12
+        years = int(sys.argv[4])
+        months = years * 12
         date = datetime.datetime.strptime(tag_dict['@<DATE>@'], '%d.%m.%Y')
         loan_sum = int(tag_dict['@<SUMM_NUMBER>@'].replace(' ', ''))
 
-        payment = loan_sum * int(tag_dict['@<PERCENT_NUMBER>@']) * months // (1200 * months)
+        sum_payments = (loan_sum * int(tag_dict['@<PERCENT_NUMBER>@']) * years) // 100
+        payment = (sum_payments // (months * 100)) * 100
 
         # проверка на нужную таблицу
         for table in document.tables:
                 if table.rows[0].cells[0].text == '№':
 
                         fill_cell_date(table, 1, date, 0) # дата погашения
-                        fill_cell_table(table, 2, space_num(payment) + ' ' + currency + ' в российских рублях по курсу ЦБ РФ на день выплаты', 0) # сумма платежа
+                        fill_cell_table(table, 2, space_num(payment) + currency + ' в российских рублях по курсу ЦБ РФ на день выплаты', 0) # сумма платежа
+                        fill_last_payment(table, 2, payment, sum_payments, months, currency) # последний платеж
 
                         # заполнение ИТОГО
-                        table.rows[months].cells[2].paragraphs[0].runs[0].text = 'Возвращается Сумма займа в размере ' + space_num(payment * months) + ' (' + str(Converter().convert(payment * months)) + ') ' + currency # сумма платежа
+                        table.rows[months].cells[2].paragraphs[0].runs[0].text = 'Возвращается Сумма займа в размере ' + space_num(sum_payments) + ' (' + str(Converter().convert(sum_payments)) + ') ' + currency # сумма платежа
 
 def get_docs_nums(data): # получим номера нужных документов
         doc_nums = []
