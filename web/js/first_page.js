@@ -1,6 +1,6 @@
 // глобальная переменная для заполнения json-реквеста для 1 страницы
 var first_page_json = JSON.parse(
-  '{"contractType":"RUSTONN_PHYS_PERSON", "currencyType":"", "currencyKind":"", "contractDuration":2}'
+  '{"contractType":"", "currencyType":"", "currencyKind":"", "contractDuration":2}'
 );
 var first_page_json_response;
 
@@ -32,7 +32,7 @@ var usdtLogic = [
 ];
 
 function setToDefault() {
-  first_page_json.contractType = "RUSTONN_PHYS_PERSON";
+  first_page_json.contractType = "";
   first_page_json.currencyType = "";
   first_page_json.currencyKind = "";
   first_page_json.contractDuration = 2;
@@ -85,7 +85,6 @@ function disableButtons(result) {
       .map((button) => button.id)
       .forEach((id) => {
         // id - все элементы
-        //console.log("id " + id);
         if (result.currencyKind.find((kind) => kind === id) !== undefined) {
           console.log("id3 " + id);
           document.getElementById(id).classList.remove("button-money-disabled");
@@ -100,25 +99,38 @@ function disableButtons(result) {
 
 // функция для отображения хинта для типа контракта
 function contractHint() {
-  const selectElement = document.getElementById("document_type_select");
-  selectElement.addEventListener("change", (event) => {
-    setToDefault();
-    const result = currentContracts.find(
-      (contract) => contract.contractType === event.target.value
-    );
-    disableButtons(result);
-    console.log(result);
+  function clear() {
+    buttons = document.querySelectorAll(".button-docs-selector");
+    buttonsArray = Array.from(buttons);
+    buttonsArray.forEach((button, index) => {
+      button.classList.remove("button-docs-selector-active");
+    });
+  }
+  const curCurrency = document.getElementsByClassName("button-docs-selector");
+  for (var i = 0; i < curCurrency.length; ++i) {
+    curCurrency[i].addEventListener("click", (event) => {
+      clear();
+      event.target.classList.toggle("button-docs-selector-active");
+      // заполняем поле в JSON
+      first_page_json.contractType = event.target.id;
+      console.log("id1 " + first_page_json.contractType);
 
-    const hint = document.getElementById("contract-hint");
-    if (event.target.value == "RUSTONN_PHYS_PERSON") {
-      hint.style.visibility = "visible";
-    } else {
-      hint.style.visibility = "hidden";
-    }
-    // устанавливаем тип контракта
-    first_page_json.contractType = event.target.value;
-    console.log(first_page_json.contractType);
-  });
+      // если выбрана валюта USDT, отключаем кнопку перевода займа
+      if (event.target.id == "USDT") {
+        const usdtObject = usdtLogic.find(
+          (obj) => obj.contractType === first_page_json.contractType
+        );
+        disableButtons(usdtObject);
+        const hint = document.getElementById("city-hint");
+        hint.style.visibility = "hidden";
+      } else {
+        const nonUsdtObject = currentContracts.find(
+          (obj) => obj.contractType === first_page_json.contractType
+        );
+        disableButtons(nonUsdtObject);
+      }
+    });
+  }
 }
 
 // функция обработки валюты

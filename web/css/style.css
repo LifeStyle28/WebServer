@@ -1,9 +1,11 @@
 .body_wrapper {
-  min-width: 500px;
+  min-width: 800px;
+  height: 800px;
   max-width: 1300px;
   width: 40%;
   margin-right: auto;
   margin-left: auto;
+  margin-top: 46px;
 }
 
 .submenu {
@@ -54,7 +56,7 @@
 
 .button-currency {
   display: inline;
-  width: 24%;
+  width: 23%;
   height: 40px;
   outline: none;
   border: none;
@@ -64,7 +66,7 @@
 }
 
 .button-currency-active {
-  width: 24%;
+  width: 23%;
   height: 40px;
   outline: none;
   border: none;
@@ -73,7 +75,6 @@
   min-width: 113px;
   color: white;
   background-color: #5ba93a;
-}
 
 .button-currency-disabled {
   width: 24%;
@@ -101,6 +102,65 @@
 
 /* Add a background color on hover */
 .buttons-currency button:hover {
+  background-color: #5ba93a;
+  color: white;
+}
+
+.buttons-docs-selector {
+  width: 100%;
+  min-width: 500px;
+}
+
+.button-docs-selector {
+  display: table;
+  width: 99%;
+  height: 65px;
+  outline: none;
+  border: none;
+  border-radius: 7px;
+  font-size: medium;
+  min-width: 113px;
+  margin-top: 10px;
+}
+
+.button-docs-selector-active {
+  width: 99%;
+  height: 65px;
+  outline: none;
+  border: none;
+  border-radius: 7px;
+  font-size: medium;
+  min-width: 113px;
+  color: white;
+  background-color: #5ba93a;
+}
+
+.button-docs-selector-disabled {
+  width: 99%;
+  height: 65px;
+  outline: none;
+  border: none;
+  border-radius: 7px;
+  font-size: medium;
+  min-width: 113px;
+  color: white;
+  background-color: lightgray;
+  pointer-events: none;
+}
+
+/* Clear floats (clearfix hack) */
+.buttons-docs-selector:after {
+  content: "";
+  clear: both;
+  display: table;
+}
+
+.buttons-docs-selector:not(:last-child) {
+  border-right: none; /* Prevent double borders */
+}
+
+/* Add a background color on hover */
+.buttons-docs-selector button:hover {
   background-color: #5ba93a;
   color: white;
 }
@@ -159,6 +219,7 @@ select {
   min-width: 230px;
   background-color: lightgray;
   pointer-events: none;
+  color: white;
 }
 
 .button-money-group:not(:last-child) {
@@ -237,6 +298,16 @@ h2 {
   font-size: medium;
   margin-bottom: 20px;
   padding-left: 10px;
+}
+
+.form-element::-webkit-inner-spin-button, 
+.form-element::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.form-element {
+    -moz-appearance: textfield;
 }
 
 #form_value
