@@ -120,6 +120,7 @@ struct AppParams
     fs::path m_resultPath;
     fs::path m_configJsonPath;
     fs::path m_scriptPath;
+    fs::path m_certsPath;
     std::optional<fs::path> m_webPath;
 };
 
@@ -134,7 +135,7 @@ std::optional<AppParams> parse_command_line(int argc, const char* argv[])
     namespace po = boost::program_options;
 
     po::options_description desc{"Allowed options"};
-    std::string resultPath, configJsonPath, scriptPath, webPath;
+    std::string resultPath, configJsonPath, scriptPath, webPath, certsPath;
     desc.add_options()
         ("help,h", "produce help message")
         ("result-path,r", po::value<std::string>(&resultPath)->value_name("dir"s),
@@ -145,10 +146,12 @@ std::optional<AppParams> parse_command_line(int argc, const char* argv[])
             "set script file path")
         ("web-path,w", po::value<std::string>(&webPath)->value_name("dir"s),
             "set web files path")
+        ("certs-path,v", po::value<std::string>(&certsPath)->value_name("dir"s),
+            "set certs files path")
     ;
 
     po::positional_options_description p;
-    p.add("result-path", 1).add("config-file", 1).add("web-path", 1);
+    p.add("result-path", 1).add("config-file", 1).add("web-path", 1).add("certs-path", 1);
 
     po::variables_map vm;
     po::store(po::command_line_parser{argc, argv}.options(desc).positional(p).run(), vm);
@@ -183,6 +186,14 @@ std::optional<AppParams> parse_command_line(int argc, const char* argv[])
     else
     {
         throw InvalidCommandLine{"--script-path is not specified"};
+    }
+    if (vm.contains("certs-path"s))
+    {
+        params.m_certsPath = certsPath;
+    }
+    else
+    {
+        throw InvalidCommandLine{"--certs-path is not specified"};
     }
     if (vm.contains("web-path"s))
     {
@@ -240,7 +251,7 @@ int main(int argc, const char* argv[])
         const auto address = net::ip::make_address(adressString);
         constexpr net::ip::port_type port = 8080;
         boost::asio::ssl::context ctx{boost::asio::ssl::context::sslv23};
-        load_server_certificate(ctx);
+        load_server_certificate(ctx, args->m_certsPath);
 
         http_server::ServeHttp(ioc, ctx, {address, port},
             [&log_handler](tcp::endpoint endpoint, auto&& req, auto&& send)

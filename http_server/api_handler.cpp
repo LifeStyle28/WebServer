@@ -29,6 +29,7 @@ struct Endpoint
     static constexpr std::string_view TAG_VALUES = "/api/v1/prog/tag_values"sv;
     static constexpr std::string_view FILLED_CONTENT = "/api/v1/prog/filled_content"sv;
     static constexpr std::string_view CHANGE_PERCENT = "/api/v1/prog/change_percent"sv;
+    static constexpr std::string_view PERCENT = "/api/v1/prog/percent"sv;
 };
 
 struct CacheControl
@@ -59,13 +60,6 @@ std::string MakeErrorJSON(std::string code, std::string message)
         {ErrorKey::MESSAGE_KEY, std::move(message)}});
 }
 
-struct ChangePercentRequest
-{
-    size_t percent;
-
-    static constexpr json::string_view PERCENT = "percent";
-};
-
 struct TagValuesRequest
 {
     std::string contractType;
@@ -93,6 +87,18 @@ struct FilledContentResponse
 {
     FilledContentResponse() = delete;
     static constexpr json::string_view FILE_NAME = "fileName";
+};
+
+struct ChangePercentRequest
+{
+    size_t percent;
+    static constexpr json::string_view PERCENT = "percent";
+};
+
+struct PercentResponce
+{
+    PercentResponce() = delete;
+    static constexpr json::string_view PERCENT = "percent";
 };
 
 struct BadRequestErrorCode
@@ -313,6 +319,10 @@ private:
             {
                 return ChangePercentHandle();
             }
+            else if (target == Endpoint::PERCENT)
+            {
+                return PercentHandle();
+            }
             throw BadRequest("badRequest"s, "Invalid endpoint"s);
         }
         catch (const MethodNotAllowed& e)
@@ -381,7 +391,7 @@ private:
         try
         {
             const auto percent{parse_change_percent_request(m_request.body())};
-            m_app.ChangePercent(percent);
+            m_app.ChangeContractPercent(percent);
 
             return m_builder.MakePlainTextResponse("Change Percent is successful"sv);
         }
@@ -389,6 +399,14 @@ private:
         {
             return m_builder.MakeInternalServerError(e.what());
         }
+    }
+
+    StringResponse PercentHandle() const
+    {
+        EnsureMethod(http::verb::get);
+
+        json::object obj{{PercentResponce::PERCENT, m_app.GetContractPercent()}};
+        return m_builder.MakeJSONResponse(json::serialize(obj));
     }
 
     void EnsureJsonContentType() const

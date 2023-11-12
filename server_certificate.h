@@ -1,38 +1,19 @@
-//
-// Copyright (c) 2016-2019 Vinnie Falco (vinnie dot falco at gmail dot com)
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-//
-// Official repository: https://github.com/boostorg/beast
-//
+#ifndef SERVER_CERTIFICATE_H
+#define SERVER_CERTIFICATE_H
 
-#ifndef BOOST_BEAST_EXAMPLE_COMMON_SERVER_CERTIFICATE_HPP
-#define BOOST_BEAST_EXAMPLE_COMMON_SERVER_CERTIFICATE_HPP
+#include <filesystem>
 
-#include <boost/asio/buffer.hpp>
 #include <boost/asio/ssl/context.hpp>
-#include <cstddef>
-#include <memory>
 
-/*  Load a signed certificate into the ssl context, and configure
-    the context for use with a server.
-
-    For this to work with the browser or operating system, it is
-    necessary to import the "Beast Test CA" certificate into
-    the local certificate store, browser, or operating system
-    depending on your environment Please see the documentation
-    accompanying the Beast certificate for more details.
-*/
-inline void load_server_certificate(boost::asio::ssl::context& ctx)
+inline void load_server_certificate(boost::asio::ssl::context& ctx, std::filesystem::path certsPath)
 {
     ctx.set_options(
         boost::asio::ssl::context::default_workarounds
         | boost::asio::ssl::context::no_sslv2
         | boost::asio::ssl::context::single_dh_use);
-    ctx.use_certificate_chain_file("/app/certs/user.crt");
-    ctx.use_private_key_file("/app/certs/user.key", boost::asio::ssl::context::pem);
-    ctx.use_tmp_dh_file("/app/certs/dh2048.pem");
+    ctx.use_certificate_chain_file(certsPath.string() + "/user.crt");
+    ctx.use_private_key_file(certsPath.string() + "/user.key", boost::asio::ssl::context::pem);
+    ctx.use_tmp_dh_file(certsPath.string() + "/dh2048.pem");
 
     ctx.set_password_callback(
         [](std::size_t,

@@ -78,11 +78,12 @@ public:
     using runtime_error::runtime_error;
 };
 
-class ChangePercentUseCase
+class PercentUseCase
 {
 public:
-    ChangePercentUseCase(model::Config& config, std::filesystem::path configJsonPath);
+    PercentUseCase(model::Config& config, std::filesystem::path configJsonPath);
     void ChangePercent(const size_t percent);
+    size_t GetPercent() const noexcept;
 private:
     model::Config& m_config;
     std::filesystem::path m_configJsonPath;

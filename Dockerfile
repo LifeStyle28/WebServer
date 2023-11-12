@@ -82,4 +82,5 @@ COPY ./web /app/web
 ENV LD_LIBRARY_PATH=/app/
 
 # Запускаем веб-сервер
-ENTRYPOINT ["/app/web_server", "-r", "/app/web/result/", "-c", "/app/templates/config.json", "-s", "/app/script/script.py", "-w", "/app/web/"]
+ENTRYPOINT ["/app/web_server", "-r", "/app/web/result/", "-c", "/app/templates/config.json", "-s",\
+    "/app/script/script.py", "-w", "/app/web/", "-v", "/app/certs"]

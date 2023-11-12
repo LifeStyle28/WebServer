@@ -195,13 +195,13 @@ void TimerUseCase::Tick(const std::chrono::steady_clock::time_point& timeNow)
     m_connTokens.Tick(timeNow);
 }
 
-ChangePercentUseCase::ChangePercentUseCase(model::Config& config, fs::path configJsonPath) :
+PercentUseCase::PercentUseCase(model::Config& config, fs::path configJsonPath) :
     m_config{config},
     m_configJsonPath{configJsonPath}
 {
 }
 
-void ChangePercentUseCase::ChangePercent(const size_t percent)
+void PercentUseCase::ChangePercent(const size_t percent)
 {
     m_config.SetPercent(percent);
 
@@ -228,6 +228,11 @@ void ChangePercentUseCase::ChangePercent(const size_t percent)
         BOOST_LOG_TRIVIAL(error) << logging::add_value(additional_data, data);
         throw ChangePercentError{"Percent saved in RAM. Try again to save it to ROM."s};
     }
+}
+
+size_t PercentUseCase::GetPercent() const noexcept
+{
+    return m_config.GetPercent();
 }
 
 } // namespace app
