@@ -1,0 +1,22 @@
+226
+POST /api/v1/prog/tag_values HTTP/1.1
+Accept: application/json
+Content-Length: 90
+Content-Type: application/x-www-form-urlencoded
+
+contractType=RUSTONN_PHYS_PERSON&currencyType=ROUBLES&currencyKind=CASH&contractDuration=2
+
+133
+POST /api/v1/prog/change_percent HTTP/1.1
+Accept: application/json
+Content-type: application/json
+Content-Length: 10
+
+percent=16
+
+109 get_percent
+GET /api/v1/prog/percent HTTP/1.1
+Host: localhost:8080
+User-Agent: tank
+Accept: */*
+Connection: Close

@@ -24,3 +24,7 @@
 
 * ```pip install -U pytest && pip install -U docker```
 * Запускаются тесты скриптом ```run.sh``` в директории ```tests```
+
+# Запуск нагрузочного тестирования с помощью Яндекс.Танк
+
+* Запуск производится из директории ammo: ```docker run -v $(pwd):/var/loadtest -v $SSH_AUTH_SOCK:/ssh-agent -e SSH_AUTH_SOCK=/ssh-agent --net host -it yandex/yandex-tank```

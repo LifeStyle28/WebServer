@@ -5,3 +5,5 @@ build/
 .venv/
 .pytest_cache/
 __pycache__/
+ammo/logs
+ammo/tank_errors.log
