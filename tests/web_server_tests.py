@@ -72,3 +72,34 @@ def test_simple(method):
         }
         res: requests.Response = server.post(url, data = body)
         assert res.status_code == 200
+
+@pytest.mark.parametrize('method', ['POST'])
+def test_bad_request(method):
+    with run_server() as (server, container):
+        url = '/app/v1/prog/tag_values'
+        body = {}
+        res: requests.Response = server.post(url, data = body)
+        assert res.status_code == 400
+
+@pytest.mark.parametrize('method', ['POST'])
+def test_not_found(method):
+    with run_server() as (server, container):
+        url = '/srv/private_info'
+        res: requests.Response = server.get(url)
+        assert res.status_code == 404
+
+# @TODO test_permission_denied and test_internal_server_error
+
+@pytest.mark.parametrize('method', ['POST'])
+def test_permission_denied(method): # @TODO
+    with run_server() as (server, container):
+        url = '/root'
+        res: requests.Response = server.get(url)
+        assert res.status_code == 403
+
+@pytest.mark.parametrize('method', ['POST'])
+def test_internal_server_error(method): # @TODO How can we test it?
+    with run_server() as (server, container):
+        url = '/'
+        res: requests.Response = server.get(url)
+        assert res.status_code == 500

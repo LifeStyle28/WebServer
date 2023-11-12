@@ -17,7 +17,7 @@ class Server:
             print(ex)
 
     def get(self, endpoint):
-        return requests.get(urljoin(self.url, endpoint))
+        return requests.get(urljoin(self.url, endpoint), verify = False)
 
     def post(self, endpoint, data):
         return requests.post(urljoin(self.url, endpoint), json = data, verify = False)
