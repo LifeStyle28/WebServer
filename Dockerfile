@@ -39,6 +39,9 @@ RUN locale-gen ru_RU.UTF-8 && dpkg-reconfigure locales
 # Установим python v3 и pip
 RUN apt update && apt install -y python3 python3-pip
 
+# Установим необходимые для скрипта модули
+RUN pip install docxcompose python-docx num-to-rus python-dateutil
+
 # Setup OpenSSL
 RUN apt update && apt install -y wget
 ARG OPENSSL_VERSION=1.1.1d
@@ -70,9 +73,6 @@ USER admin
 
 # Создадим рабочую папку app и выставим права доступа
 RUN mkdir -p /app/templates && mkdir /app/web && mkdir /app/web/result && mkdir /app/script
-
-# Установим необходимые для скрипта модули
-RUN pip install docxcompose python-docx num-to-rus python-dateutil
 
 # Скопируем приложение из сборочного контейнера в директорию /app
 COPY --from=build /app/build/bin/web_server /app/
