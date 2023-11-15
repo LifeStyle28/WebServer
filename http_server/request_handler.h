@@ -50,6 +50,8 @@ public:
             return std::visit(
                 [&send](auto&& response)
                 {
+                    response.set(http::field::access_control_allow_origin, AccessControl::ORIGIN);
+                    response.set(http::field::access_control_allow_credentials, AccessControl::CREDENTIALS);
                     send(std::forward<decltype(response)>(response));
                 },
                 HandleFileRequest(req)

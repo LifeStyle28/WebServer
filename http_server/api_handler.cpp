@@ -38,15 +38,6 @@ struct CacheControl
     static constexpr std::string_view NO_CACHE = "no-cache"sv;
 };
 
-struct AccessControl
-{
-    AccessControl() = delete;
-    static constexpr std::string_view ORIGIN = "https://www.rustonn.ru"sv;
-    static constexpr std::string_view CREDENTIALS = "true"sv;
-    static constexpr std::string_view METHODS = "GET, HEAD, POST, OPTIONS"sv;
-    static constexpr std::string_view HEADERS = "Content-Type, Authorization"sv;
-};
-
 struct ErrorKey
 {
     ErrorKey() = delete;
