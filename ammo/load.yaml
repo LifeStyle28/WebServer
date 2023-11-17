@@ -1,7 +1,7 @@
 overload:
   enabled: false
 phantom:
-  address: 127.0.0.1:8080
+  address: www.websrustonn.ru:443
   ammofile: ammo.txt
   ammo_type: uri
   load_profile:
