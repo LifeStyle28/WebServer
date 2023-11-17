@@ -5,36 +5,36 @@
     <meta charset="utf-8" />
   </head>
   <body>
-    <div class="body_wrapper">
-    <h2>
-      <div>
-        <label id="form_main">Заполните форму</label>
+    <div class="body_wrapper_second">
+      <h2>
+        <div>
+          <label id="form_main">Заполните форму</label>
+        </div>
+      </h2>
+  
+      <h2>
+        <div>
+          <label id="form_annotation"
+            >Заполните форму для продолжения создания договора займа</label
+          >
+        </div>
+      </h2>
+      <div class="tn-atom"></div>
+      <div class="form-container" id="doc_input">
+        <form action="#" method="post">
+        </form>
       </div>
-    </h2>
-
-    <h2>
-      <div>
-        <label id="form_annotation"
-          >Заполните форму для продолжения создания договора займа</label
-        >
+  
+      <div class="tn-atom"></div>
+  
+      <div class="button">
+        <button id="final_button">Отправить</button>
       </div>
-    </h2>
-    <div class="tn-atom"></div>
-    <div class="form-container" id="doc_input">
-      <form action="#" method="post">
-      </form>
-    </div>
-
-    <div class="tn-atom"></div>
-
-    <div class="button">
-      <button onclick="onFinalReq()" id="next_button">Отправить</button>
-    </div>
-
-    <div class="button">
-      <button onclick="onPrevPage()" id="prev_button">Назад</button>
-    </div>
-
-    <script src="js/second_page.js"></script>
+  
+      <div class="button">
+        <button id="prev_button">Назад</button>
+      </div>
+  </div>
+  <script src="js/second_page.js"></script>
   </body>
 </html>

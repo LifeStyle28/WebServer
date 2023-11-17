@@ -63,15 +63,12 @@ function appendChild() {
     tag = getObjectByTag(obj.tag);
     // Get placeholder text
     key = obj.key;
-    if (tag == "number")
-    {
+    if (tag == "number") {
       container.insertAdjacentHTML(
         "beforeend",
         `<input class="form-element" id= "${obj.tag}" type="${tag}" placeholder="${key}" inputmode="numeric">`
       );
-    }
-    else
-    {
+    } else {
       container.insertAdjacentHTML(
         "beforeend",
         `<input class="form-element" id= "${obj.tag}" type="${tag}" placeholder="${key}">`
@@ -151,8 +148,8 @@ function appendChild() {
         previousValue = this.value;
       });
 
-      var prevSer = document.getElementById("@<PASSPORT_SERIA_NUM>@").value;
-      document
+    var prevSer = document.getElementById("@<PASSPORT_SERIA_NUM>@").value;
+    document
       .getElementById("@<PASSPORT_SERIA_NUM>@")
       .addEventListener("keyup", function () {
         var value = this.value;
@@ -177,16 +174,20 @@ function appendChild() {
   }
 
   function isValidDate(date) {
-    var matches = /^(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[012])\.\d{4}$/.exec(date);
+    var matches = /^(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[012])\.\d{4}$/.exec(
+      date
+    );
     if (matches == null) return false;
     var d = matches[1];
     var m = matches[2] - 1; // months are 0-based in JavaScript
     var y = matches[3];
     var composedDate = new Date(y, m, d);
-    return composedDate.getDate() == d &&
-           composedDate.getMonth() == m &&
-           composedDate.getFullYear() == y;
-}
+    return (
+      composedDate.getDate() == d &&
+      composedDate.getMonth() == m &&
+      composedDate.getFullYear() == y
+    );
+  }
 
   // Добавьте обработчик событий к input
   var inputs = document.querySelectorAll(".form-element");
@@ -222,17 +223,13 @@ function appendChild() {
         console.error("Введите 2 или более слова, состоящих только из букв");
         event.target.classList.add("invalid-input");
         jsonArray[indexToFind].value = "";
-      } else if (
-        tagToFind === "@<PASSPORT_SERIA_NUM>@") {
-          let newValue = value.replace(/\D/g, '');
-        if (!/^\d{10}$/.test(newValue))
-        {
+      } else if (tagToFind === "@<PASSPORT_SERIA_NUM>@") {
+        let newValue = value.replace(/\D/g, "");
+        if (!/^\d{10}$/.test(newValue)) {
           console.error("Введите серию и номер паспорта в формате 1234567890");
           event.target.classList.add("invalid-input");
           jsonArray[indexToFind].value = "";
-        }
-        else
-        {
+        } else {
           console.log(value);
           console.log(newValue);
           event.target.classList.remove("invalid-input");
@@ -246,30 +243,28 @@ function appendChild() {
         jsonArray[indexToFind].value = "";
       } else if (
         (tagToFind === "@<DATE>@" ||
-        tagToFind === "@<PASSPORT_DATE>@" ||
-        tagToFind === "@<BIRTH_DATE>@") &&
-          !/^(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[012])\.\d{4}$/.test(value))
-      {
+          tagToFind === "@<PASSPORT_DATE>@" ||
+          tagToFind === "@<BIRTH_DATE>@") &&
+        !/^(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[012])\.\d{4}$/.test(value)
+      ) {
         console.error(
           "Поле с тегом DATE должно быть корректной датой в формате DD.MM.YEAR"
         );
         event.target.classList.add("invalid-input");
         jsonArray[indexToFind].value = "";
-      } else if (tagToFind === "@<SUMM_NUMBER>@")
-      {
-        let formatter = new Intl.NumberFormat('ru-RU');
-        let newValue = value.replace(/\D/g, '');
+      } else if (tagToFind === "@<SUMM_NUMBER>@") {
+        let formatter = new Intl.NumberFormat("ru-RU");
+        let newValue = value.replace(/\D/g, "");
         let formattedNumber = formatter.format(newValue); // Outputs: "1 000 000"
         jsonArray[indexToFind].value = parseInt(newValue);
         event.target.value = formattedNumber; // Update the input field value
-      }
-      else {
+      } else {
         event.target.classList.remove("invalid-input");
         jsonArray[indexToFind].value = value;
       }
 
       console.log("Object tag was changed:", jsonArray[indexToFind]);
-  });
+    });
   });
 
   // Добавьте обработчик событий к textarea
@@ -296,84 +291,90 @@ function onPrevPage() {
   window.location.href = "first_page.html";
 }
 
-function onFinalReq() {
-  // отправить финальный реквест с json файлом и токеном
-  // отправить хттп запрос с json-файлом
-  console.log("token", `Bearer ${first_page_json_response.token}`);
-  console.log(
-    "tag_values",
-    JSON.stringify(first_page_json_response.tag_values)
-  );
+function finalReq() {
+  var finalBut = document.getElementById("final_button");
+  finalBut.addEventListener("click", function () {
+    // отправить финальный реквест с json файлом и токеном
+    // отправить хттп запрос с json-файлом
+    console.log("token", `Bearer ${first_page_json_response.token}`);
+    console.log(
+      "tag_values",
+      JSON.stringify(first_page_json_response.tag_values)
+    );
 
-  // Проверка значений полей перед отправкой запроса
-  var tagsToCheck = [
-    "@<DATE>@",
-    "@<PASSPORT_DATE>@",
-    "@<BIRTH_DATE>@",
-    "@<FIO_FULL>@",
-    "@<SUMM_NUMBER>@",
-  ];
-  for (let i = 0; i < tagsToCheck.length; i++) {
-    var tag = tagsToCheck[i];
-    var index = first_page_json_response.tag_values.findIndex(function (
-      element
-    ) {
-      return element.tag === tag;
-    });
-    if (
-      index !== -1 &&
-      first_page_json_response.tag_values[index].value === ""
-    ) {
-      console.error(`Поле с тегом ${tag} не должно быть пустым`);
-      // Подчеркнуть поле красным цветом
-      var input = document.getElementById(tag);
-      if (input) {
-        input.style.border = "1px solid red";
+    // Проверка значений полей перед отправкой запроса
+    var tagsToCheck = [
+      "@<DATE>@",
+      "@<PASSPORT_DATE>@",
+      "@<BIRTH_DATE>@",
+      "@<FIO_FULL>@",
+      "@<SUMM_NUMBER>@",
+    ];
+    for (let i = 0; i < tagsToCheck.length; i++) {
+      var tag = tagsToCheck[i];
+      var index = first_page_json_response.tag_values.findIndex(function (
+        element
+      ) {
+        return element.tag === tag;
+      });
+      if (
+        index !== -1 &&
+        first_page_json_response.tag_values[index].value === ""
+      ) {
+        console.error(`Поле с тегом ${tag} не должно быть пустым`);
+        // Подчеркнуть поле красным цветом
+        var input = document.getElementById(tag);
+        if (input) {
+          input.style.border = "1px solid red";
+        }
+        return;
       }
-      return;
     }
-  }
 
-  fetch("/api/v1/prog/filled_content", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      Authorization: `Bearer ${first_page_json_response.token}`,
-    },
-    body: JSON.stringify({
-      from_tag_values: first_page_json_response.tag_values,
-    }),
-  })
-    .then((response) => response.json())
-    .then((data) => {
-      console.log(data);
-
-      // Выполнить GET запрос сразу после получения ответа на POST запрос
-      fetch(`/${data.fileName}`)
-        .then((response) => response.blob()) // Декодируем ответ в формате Blob
-        .then((data) => {
-          // Создаем объект URL из Blob
-          const url = window.URL.createObjectURL(data);
-          // Создаем ссылку для скачивания
-          const a = document.createElement("a");
-          a.href = url;
-          // Устанавливаем имя файла
-          a.download = "docs.zip";
-          // Инициируем скачивание
-          document.body.appendChild(a);
-          a.click();
-          // Удаляем временную ссылку
-          document.body.removeChild(a);
-        })
-        .catch((error) => console.error("Ошибка:", error));
+    fetch("/api/v1/prog/filled_content", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Authorization: `Bearer ${first_page_json_response.token}`,
+      },
+      body: JSON.stringify({
+        from_tag_values: first_page_json_response.tag_values,
+      }),
     })
-    .catch((error) => {
-      console.error("Error:", error);
-    });
+      .then((response) => response.json())
+      .then((data) => {
+        console.log(data);
+        var file_name = data.fileName;
+        // Выполнить GET запрос сразу после получения ответа на POST запрос
+        fetch(`/${data.fileName}`)
+          .then((response) => response.blob()) // Декодируем ответ в формате Blob
+          .then((data) => {
+            // Create URL from Blob
+            const url = window.URL.createObjectURL(data);
+            // Create download link
+            const a = document.createElement("a");
+            a.href = url;
+            var parts = file_name.split("/");
+            // Set the download file name
+            a.download = parts[2];
+            // Trigger the download
+            document.body.appendChild(a);
+            a.click();
+            // Remove the temporary link
+            document.body.removeChild(a);
+            // Клик по элементу
+          })
+          .catch((error) => console.error("Ошибка:", error));
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+      });
+  });
 }
 
 appendChild();
+finalReq();
 // здесь нужны функции отправки запросов и принятия
 //@todo добавить кнопки отправить и назад, токен-хуекен
 // @todo добавить функции, которые будут сохранять жсон
