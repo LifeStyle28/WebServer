@@ -16,7 +16,7 @@ percent=16
 
 109 get_percent
 GET /api/v1/prog/percent HTTP/1.1
-Host: localhost:8080
+Host: websrustonn.ru:443
 User-Agent: tank
 Accept: */*
 Connection: Close
