@@ -40,7 +40,7 @@ RUN locale-gen ru_RU.UTF-8 && dpkg-reconfigure locales
 RUN apt update && apt install -y python3 python3-pip
 
 # Установим необходимые для скрипта модули
-RUN pip install docxcompose python-docx num-to-rus python-dateutil
+RUN pip install docxcompose python-docx num2words python-dateutil
 
 # Setup OpenSSL
 RUN apt update && apt install -y wget

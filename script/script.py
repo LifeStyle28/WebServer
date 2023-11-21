@@ -6,7 +6,7 @@ import os
 import logging
 
 from docx import Document
-from num_to_rus import Converter
+from num2words import num2words
 
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
@@ -21,6 +21,9 @@ from dateutil.relativedelta import *
 # argv[3] - номера документов
 # argv[4] - срок договора
 # argv[5] - процентная ставка
+
+def convert(str):
+        return num2words(str, lang='ru')
 
 def space_num(num):
     return format(num, ',d').replace(',',' ')
@@ -180,13 +183,13 @@ def make_table_1(document, tag_dict):
                         fill_cell_table(table, 3, space_num(hold_sum)) # удерживаемая сумма налога
                         fill_cell_table(table, 4, space_num(result_sum)) # итоговая сумма выплаты Займодавцу
                         fill_with_minuses(table, 5) # сумма основного долга, выставление минусов
-                        table.columns[5].cells[-2].paragraphs[0].runs[0].text = space_num(loan_sum) + ' (' + str(Converter().convert(loan_sum)) + ') рублей' # сумма основного долга
+                        table.columns[5].cells[-2].paragraphs[0].runs[0].text = space_num(loan_sum) + ' (' + str(convert(loan_sum)) + ') рублей' # сумма основного долга
 
                         # Заполнение ИТОГО
-                        table.rows[-1].cells[2].paragraphs[0].runs[0].text = space_num(sum_payments) + ' (' + str(Converter().convert(sum_payments)) + ') рублей' # сумма платежа
-                        table.rows[-1].cells[3].paragraphs[0].runs[0].text = space_num(hold_sum * months) + ' (' + str(Converter().convert(hold_sum * months)) + ') рублей' # удерживаемая сумма налога
-                        table.rows[-1].cells[4].paragraphs[0].runs[0].text = space_num(result_sum * months) + ' (' + str(Converter().convert(result_sum * months)) + ') рублей' # утоговая сумма выплаты Займодавцу
-                        table.rows[-1].cells[5].paragraphs[0].runs[0].text = space_num(loan_sum) + ' (' + str(Converter().convert(loan_sum)) + ') рублей' # сумма основного долга
+                        table.rows[-1].cells[2].paragraphs[0].runs[0].text = space_num(sum_payments) + ' (' + str(convert(sum_payments)) + ') рублей' # сумма платежа
+                        table.rows[-1].cells[3].paragraphs[0].runs[0].text = space_num(hold_sum * months) + ' (' + str(convert(hold_sum * months)) + ') рублей' # удерживаемая сумма налога
+                        table.rows[-1].cells[4].paragraphs[0].runs[0].text = space_num(result_sum * months) + ' (' + str(convert(result_sum * months)) + ') рублей' # утоговая сумма выплаты Займодавцу
+                        table.rows[-1].cells[5].paragraphs[0].runs[0].text = space_num(loan_sum) + ' (' + str(convert(loan_sum)) + ') рублей' # сумма основного долга
 
 def make_table_2(document, tag_dict, currency):
         logging.debug('make_table_2')
@@ -210,9 +213,9 @@ def make_table_2(document, tag_dict, currency):
                         table.columns[3].cells[1 + months].paragraphs[0].runs[0].text = space_num(loan_sum) + currency # сумма основного долга
 
                         # Заполнение ИТОГО
-                        table.rows[-1].cells[2].paragraphs[0].runs[0].text = space_num(sum_payments) + ' (' + str(Converter().convert(sum_payments)) + ')' + currency # сумма платежа
+                        table.rows[-1].cells[2].paragraphs[0].runs[0].text = space_num(sum_payments) + ' (' + str(convert(sum_payments)) + ')' + currency # сумма платежа
                         if (currency != ' USDT TRC-20'):
-                                table.rows[-1].cells[3].paragraphs[0].runs[0].text = space_num(loan_sum) + ' (' + str(Converter().convert(loan_sum)) + ')' + currency # сумма основного долга
+                                table.rows[-1].cells[3].paragraphs[0].runs[0].text = space_num(loan_sum) + ' (' + str(convert(loan_sum)) + ')' + currency # сумма основного долга
 
 def make_table_3(document, tag_dict, currency):
         logging.debug('make_table_3')
@@ -233,7 +236,7 @@ def make_table_3(document, tag_dict, currency):
                         fill_last_payment(table, 2, payment, sum_payments, months, currency) # последний платеж
 
                         # заполнение ИТОГО
-                        table.rows[months].cells[2].paragraphs[0].runs[0].text = 'Возвращается Сумма займа в размере ' + space_num(sum_payments) + ' (' + str(Converter().convert(sum_payments)) + ') ' + currency # сумма платежа
+                        table.rows[months].cells[2].paragraphs[0].runs[0].text = 'Возвращается Сумма займа в размере ' + space_num(sum_payments) + ' (' + str(convert(sum_payments)) + ') ' + currency # сумма платежа
 
 def get_docs_nums(data): # получим номера нужных документов
         doc_nums = []
@@ -300,7 +303,7 @@ def make_contract_num(tag_dict):
 
 def add_extra_tags(tag_dict):
         if '@<SUMM_NUMBER>@' in tag_dict:
-                tag_dict['@<SUMM_TEXT>@'] = str(Converter().convert(int(tag_dict['@<SUMM_NUMBER>@'])))
+                tag_dict['@<SUMM_TEXT>@'] = str(convert(int(tag_dict['@<SUMM_NUMBER>@'])))
         if '@<FIO_FULL>@' in tag_dict:
                 tag_dict['@<FIO_SHORT>@'] = make_fio_short(tag_dict['@<FIO_FULL>@'], '.')
         if '@<PASSPORT_SERIA_NUM>@' in tag_dict:
@@ -311,7 +314,12 @@ def add_extra_tags(tag_dict):
         tag_dict['@<CONTRACT_TERM>@'] = str(date.strftime("%d.%m.%Y"))
         tag_dict['@<PERCENT_NUMBER>@'] = str(sys.argv[5])
         if '@<PERCENT_NUMBER>@' in tag_dict:
-                tag_dict['@<PERCENT_TEXT>@'] = str(Converter().convert(int(tag_dict['@<PERCENT_NUMBER>@'])))
+                tag_dict['@<PERCENT_TEXT>@'] = str(convert(int(tag_dict['@<PERCENT_NUMBER>@'])))
+        if int(sys.argv[4]) == 2:
+                months_text = ' месяца'
+        else:
+                months_text = ' месяцев'
+        tag_dict['@<MONTHS>@'] = str(int(sys.argv[4]) * 12) + months_text
 
 def make_fio_date(tag_dict):
         return tag_dict['@<DATE>@'] + ' ' + tag_dict['@<FIO_SHORT>@']
