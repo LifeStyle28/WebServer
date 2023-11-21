@@ -15,7 +15,7 @@ class Connection
 {
     enum class TimeExpired
     {
-        DURATION = 10,
+        DURATION = 60,
     };
 public:
     Connection(const model::Contract::Id id, const size_t duration);

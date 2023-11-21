@@ -331,45 +331,60 @@ function finalReq() {
       }
     }
 
-    fetch("/api/v1/prog/filled_content", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        Authorization: `Bearer ${first_page_json_response.token}`,
-      },
-      body: JSON.stringify({
+    $.post({
+      url: "/api/v1/prog/filled_content",
+      type: "POST",
+      dataType: "json",
+      contentType: "application/json",
+      data: JSON.stringify({
         from_tag_values: first_page_json_response.tag_values,
       }),
+      headers: {
+        Authorization: `Bearer ${first_page_json_response.token}`,
+      },
     })
-      .then((response) => response.json())
-      .then((data) => {
-        console.log(data);
-        var file_name = data.fileName;
-        // Выполнить GET запрос сразу после получения ответа на POST запрос
-        fetch(`/${data.fileName}`)
-          .then((response) => response.blob()) // Декодируем ответ в формате Blob
-          .then((data) => {
-            // Create URL from Blob
-            const url = window.URL.createObjectURL(data);
-            // Create download link
-            const a = document.createElement("a");
-            a.href = url;
-            var parts = file_name.split("/");
-            // Set the download file name
-            a.download = parts[2];
-            // Trigger the download
-            document.body.appendChild(a);
-            a.click();
-            // Remove the temporary link
-            document.body.removeChild(a);
-            // Клик по элементу
-          })
-          .catch((error) => console.error("Ошибка:", error));
-      })
-      .catch((error) => {
-        console.error("Error:", error);
+    .done((data) => {
+      console.log(data);
+      var file_name = data.fileName;
+      // Выполнить GET запрос сразу после получения ответа на POST запрос
+      $.ajax({
+        url: `/${data.fileName}`, // replace with your URL
+        type: "GET",
+        xhrFields: {
+          responseType: "blob", // to avoid binary data being mangled on charset conversion
+        },
+        success: function (blob) {
+          // Create URL from Blob
+          const url = window.URL.createObjectURL(blob);
+          // Create download link
+          const a = document.createElement("a");
+          a.href = url;
+          var parts = file_name.split("/");
+          // Set the download file name
+          a.download = parts[2];
+          // Trigger the download
+          document.body.appendChild(a);
+          a.click();
+          // Remove the temporary link
+          document.body.removeChild(a);
+          var element = document.getElementsByClassName(
+          "t-popup__close-wrapper t-popup__block-close-button"
+          )[1];
+
+          // Клик по элементу
+          element.click();
+          location.reload();
+        },
+        error: function (err) {
+          console.error("Ошибка:", err);
+          alert(err + ". Попробуйте начать заново!");
+        },
       });
+    })
+    .fail((error) => {
+      console.error("Error:", error);
+      alert("Status: " + error.status + ". " + error.responseText + ". Попробуйте начать заново!");
+    });
   });
 }
 
