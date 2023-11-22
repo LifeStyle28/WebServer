@@ -145,6 +145,12 @@ def fill_with_minuses(table, column_num, row_set = 1):
                 if cell_idx > row_set + 1 and (cell_idx <= (12 * int(sys.argv[4]))+ row_set):
                         value.paragraphs[0].runs[0].text = '-'
 
+def get_quotient(currency):
+    if currency == ' рублей':
+        return 100
+    else:
+        return 10
+
 def make_tables(document, type, tag_dict):
         logging.debug(f'table type with num={type}')
         if type <= 4:
@@ -225,7 +231,7 @@ def make_table_3(document, tag_dict, currency):
         loan_sum = int(tag_dict['@<SUMM_NUMBER>@'].replace(' ', ''))
 
         sum_payments = (loan_sum * int(tag_dict['@<PERCENT_NUMBER>@']) * years) // 100
-        payment = (sum_payments // (months * 100)) * 100
+        payment = (sum_payments // (months * get_quotient(currency))) * get_quotient(currency)
 
         # проверка на нужную таблицу
         for table in document.tables:
@@ -233,7 +239,7 @@ def make_table_3(document, tag_dict, currency):
 
                         fill_cell_date(table, 1, date, 0) # дата погашения
                         fill_cell_table(table, 2, space_num(payment) + currency + ' в российских рублях по курсу ЦБ РФ на день выплаты', 0) # сумма платежа
-                        fill_last_payment(table, 2, payment, sum_payments, months, currency) # последний платеж
+                        fill_last_payment(table, 2, payment, sum_payments, months - 1, currency + ' в российских рублях по курсу ЦБ РФ на день выплаты') # последний платеж
 
                         # заполнение ИТОГО
                         table.rows[months].cells[2].paragraphs[0].runs[0].text = 'Возвращается Сумма займа в размере ' + space_num(sum_payments) + ' (' + str(convert(sum_payments)) + ') ' + currency # сумма платежа
