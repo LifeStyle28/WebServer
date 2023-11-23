@@ -163,9 +163,9 @@ def make_tables(document, type, tag_dict):
         elif type <= 9:
                 make_table_2(document, tag_dict, ' рублей')
         elif type <= 10:
-                make_table_3(document, tag_dict, ' долларов США')
+                make_table_2(document, tag_dict, ' долларов США')
         elif type <= 11:
-                make_table_3(document, tag_dict, ' Евро')
+                make_table_2(document, tag_dict, ' Евро')
         elif type == 12:
                 make_table_2(document, tag_dict, ' USDT TRC-20')
 
@@ -187,7 +187,7 @@ def make_table_1(document, tag_dict):
 
         # проверка на нужную таблицу
         for table in document.tables:
-                if table.rows[0].cells[0].text  == '№ п/п':
+                 if '№' in table.rows[0].cells[0].text:
                         fill_cell_date(table, 1, date) # дата погашения
                         fill_cell_table(table, 2, space_num(payment)) # сумма платежа
                         fill_last_payment(table, 2, payment, sum_payments, months) # последний платеж
@@ -202,6 +202,12 @@ def make_table_1(document, tag_dict):
                         table.rows[-1].cells[4].paragraphs[0].runs[0].text = space_num(result_sum * months) + ' (' + str(convert(result_sum * months)) + ') рублей' # утоговая сумма выплаты Займодавцу
                         table.rows[-1].cells[5].paragraphs[0].runs[0].text = space_num(loan_sum) + ' (' + str(convert(loan_sum)) + ') рублей' # сумма основного долга
 
+def extra_currency_text(currency):
+        if currency == ' долларов США' or currency == ' Евро':
+                return currency + ' в российских рублях по курсу ЦБ РФ на день выплаты'
+        else:
+                return currency
+
 def make_table_2(document, tag_dict, currency):
         logging.debug('make_table_2')
         years = int(sys.argv[4])
@@ -210,23 +216,23 @@ def make_table_2(document, tag_dict, currency):
         loan_sum = int(tag_dict['@<SUMM_NUMBER>@'].replace(' ', ''))
 
         sum_payments = (loan_sum * int(tag_dict['@<PERCENT_NUMBER>@']) * years) // 100
-        payment = (sum_payments // (months * 100)) * 100
+        payment = get_payment(sum_payments, months, currency)
 
         # проверка на нужную таблицу
         for table in document.tables:
-                if table.rows[0].cells[0].text  == '№ п/п':
+                if '№' in table.rows[0].cells[0].text:
                         table.rows[0].cells[2].paragraphs[0].runs[0].text = 'Сумма процентов: ' + str(int(tag_dict['@<PERCENT_NUMBER>@'])) + '%'
 
                         fill_cell_date(table, 1, date) # дата погашения
-                        fill_cell_table(table, 2, space_num(payment) + currency) # сумма платежа
-                        fill_last_payment(table, 2, payment, sum_payments, months, currency) # последний платеж
+                        fill_cell_table(table, 2, str(payment) + extra_currency_text(currency)) # сумма платежа
+                        fill_last_payment(table, 2, payment, sum_payments, months, extra_currency_text(currency)) # последний платеж
 
-                        table.columns[3].cells[1 + months].paragraphs[0].runs[0].text = space_num(loan_sum) + currency # сумма основного долга
+                        table.columns[3].cells[1 + months].paragraphs[0].runs[0].text = space_num(loan_sum) + extra_currency_text(currency) # сумма основного долга
 
                         # Заполнение ИТОГО
-                        table.rows[-1].cells[2].paragraphs[0].runs[0].text = space_num(sum_payments) + ' (' + str(convert(sum_payments)) + ')' + currency # сумма платежа
+                        table.rows[-1].cells[2].paragraphs[0].runs[0].text = space_num(sum_payments) + ' (' + str(convert(sum_payments)) + ')' + extra_currency_text(currency) # сумма платежа
                         if (currency != ' USDT TRC-20'):
-                                table.rows[-1].cells[3].paragraphs[0].runs[0].text = space_num(loan_sum) + ' (' + str(convert(loan_sum)) + ')' + currency # сумма основного долга
+                                table.rows[-1].cells[3].paragraphs[0].runs[0].text = space_num(loan_sum) + ' (' + str(convert(loan_sum)) + ')' + extra_currency_text(currency) # сумма основного долга
 
 def make_table_3(document, tag_dict, currency):
         logging.debug('make_table_3')
@@ -240,10 +246,10 @@ def make_table_3(document, tag_dict, currency):
 
         # проверка на нужную таблицу
         for table in document.tables:
-                if table.rows[0].cells[0].text == '№':
+                if '№' in table.rows[0].cells[0].text:
 
-                        fill_cell_date(table, 1, date, 0) # дата погашения
-                        fill_cell_table(table, 2, str(payment) + currency + ' в российских рублях по курсу ЦБ РФ на день выплаты', 0) # сумма платежа
+                        fill_cell_date(table, 1, date) # дата погашения
+                        fill_cell_table(table, 2, str(payment) + currency + ' в российских рублях по курсу ЦБ РФ на день выплаты') # сумма платежа
                         fill_last_payment(table, 2, payment, sum_payments, months - 1, currency + ' в российских рублях по курсу ЦБ РФ на день выплаты') # последний платеж
 
                         # заполнение ИТОГО
@@ -348,6 +354,8 @@ def human_format(num):
 def make_zip_name(date, sum, currency_char, fio_short):
         fio_short = fio_short.replace('.', '')
         fio_short = fio_short.replace(' ', '')
+        if currency_char == '$':
+                currency_char = '\$'
         result = date.replace('.', '') + '_' + human_format(int(sum.replace(' ', ''))) + '_' + currency_char + '_' + fio_short
 
         return result;
