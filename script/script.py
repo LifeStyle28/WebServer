@@ -330,7 +330,9 @@ def add_extra_tags(tag_dict):
                 months_text = ' месяца'
         else:
                 months_text = ' месяцев'
-        tag_dict['@<MONTHS>@'] = str(int(sys.argv[4]) * 12) + months_text
+        months_int = int(sys.argv[4]) * 12
+        tag_dict['@<MONTHS>@'] = str(months_int) + months_text
+        tag_dict['@<EXTRA_MONTHS>@'] = str(months_int) + ' (' + convert(months_int) + ')' + months_text
 
 def make_fio_date(tag_dict):
         return tag_dict['@<DATE>@'] + ' ' + tag_dict['@<FIO_SHORT>@']
