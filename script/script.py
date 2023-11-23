@@ -64,7 +64,12 @@ def fill_cell_table(table, column_num, text, row_set = 1):
                                 value.paragraphs[0].runs[0].text = text
 
 def fill_last_payment(table, column_num, payment, sum_payments, months, currency = ''):
-        table.columns[column_num].cells[-2].paragraphs[0].runs[0].text = space_num(sum_payments - payment * (months - 1)) + currency
+        integer_part = int(sum_payments - payment * (months - 1))
+        fract_part = int(float(sum_payments - payment * (months - 1) - integer_part) * 100)
+        if fract_part == 0:
+                table.columns[column_num].cells[-2].paragraphs[0].runs[0].text = space_num(integer_part) + currency
+        else:
+                table.columns[column_num].cells[-2].paragraphs[0].runs[0].text = str(space_num(integer_part)) + '.' + str(fract_part) + currency
 
 def set_cell_border(cell: _Cell, **kwargs):
     tc = cell._tc
@@ -145,11 +150,11 @@ def fill_with_minuses(table, column_num, row_set = 1):
                 if cell_idx > row_set + 1 and (cell_idx <= (12 * int(sys.argv[4]))+ row_set):
                         value.paragraphs[0].runs[0].text = '-'
 
-def get_quotient(currency):
+def get_payment(sum_payments, months, currency):
     if currency == ' рублей':
-        return 100
+        return (sum_payments // (months * 100)) * 100
     else:
-        return 10
+        return round(sum_payments / months, 2)
 
 def make_tables(document, type, tag_dict):
         logging.debug(f'table type with num={type}')
@@ -231,14 +236,14 @@ def make_table_3(document, tag_dict, currency):
         loan_sum = int(tag_dict['@<SUMM_NUMBER>@'].replace(' ', ''))
 
         sum_payments = (loan_sum * int(tag_dict['@<PERCENT_NUMBER>@']) * years) // 100
-        payment = (sum_payments // (months * get_quotient(currency))) * get_quotient(currency)
+        payment = get_payment(sum_payments, months, currency)
 
         # проверка на нужную таблицу
         for table in document.tables:
                 if table.rows[0].cells[0].text == '№':
 
                         fill_cell_date(table, 1, date, 0) # дата погашения
-                        fill_cell_table(table, 2, space_num(payment) + currency + ' в российских рублях по курсу ЦБ РФ на день выплаты', 0) # сумма платежа
+                        fill_cell_table(table, 2, str(payment) + currency + ' в российских рублях по курсу ЦБ РФ на день выплаты', 0) # сумма платежа
                         fill_last_payment(table, 2, payment, sum_payments, months - 1, currency + ' в российских рублях по курсу ЦБ РФ на день выплаты') # последний платеж
 
                         # заполнение ИТОГО
