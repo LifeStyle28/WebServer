@@ -1,3 +1,4 @@
+<script>
 // глобальная переменная для заполнения json-реквеста для 1 страницы
 var first_page_json = JSON.parse(
   '{"contractType":"", "currencyType":"", "currencyKind":"", "contractDuration":2}'
@@ -323,6 +324,7 @@ function second_page(first_page_json_response) {
       case "@<PHONE_NUMBER>@":
       case "@<PAYMENT_ACCOUNT>@":
       case "@<INN>@":
+      case "@<PASSPORT_SEP_CODE>@":
         return "number";
         break;
       // email type
@@ -407,7 +409,11 @@ function second_page(first_page_json_response) {
 
           previousValue = this.value;
         });
-
+    } catch (e) {
+      console.error("An error occurred with the DATE field: ", e);
+    }
+    try
+    {
       var previousValue = document.getElementById("@<BIRTH_DATE>@").value;
       document
         .getElementById("@<BIRTH_DATE>@")
@@ -429,7 +435,10 @@ function second_page(first_page_json_response) {
 
           previousValue = this.value;
         });
-
+    } catch (e) {
+      console.error("An error occurred with the DATE field: ", e);
+    }
+    try {
       var previousValue = document.getElementById("@<PASSPORT_DATE>@").value;
       document
         .getElementById("@<PASSPORT_DATE>@")
@@ -564,6 +573,7 @@ function second_page(first_page_json_response) {
           let formattedNumber = formatter.format(newValue); // Outputs: "1 000 000"
           jsonArray[indexToFind].value = parseInt(newValue);
           event.target.value = formattedNumber; // Update the input field value
+          event.target.classList.remove("invalid-input");
         } else {
           event.target.classList.remove("invalid-input");
           jsonArray[indexToFind].value = value;
@@ -708,3 +718,5 @@ function second_page(first_page_json_response) {
   finalReq();
   appendChild();
 }
+
+</script>
