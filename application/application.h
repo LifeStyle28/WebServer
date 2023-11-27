@@ -24,6 +24,7 @@ private:
     CreateResultFileUseCase m_createResultFile;
     TimerUseCase m_timer{m_tokens};
     PercentUseCase m_percent;
+    SendEmailUseCase m_email;
 };
 
 } // namespace app

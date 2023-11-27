@@ -51,10 +51,13 @@ public:
     Contract* FindContractIndexBy(const Contract::Id id) const noexcept;
     void SetPercent(const size_t percent);
     size_t GetPercent() const noexcept;
+    void SetEmail(std::string email);
+    const std::string& GetEmail() const noexcept;
 private:
     ContractsStorage m_contracts;
     ContractIdToIndex m_contractIdToIndex;
     size_t m_percent{0};
+    std::string m_email;
 };
 
 } // namespace model

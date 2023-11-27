@@ -130,6 +130,18 @@ size_t load_percent(const json::value& val)
 }
 
 /**
+ * @brief      Загрузить адрес почты
+ *
+ * @param[in]  val   значение для парсинга
+ *
+ * @return     адрес почты (std::string)
+ */
+std::string load_email(const json::value& val)
+{
+    return json_val_as_string(val);
+}
+
+/**
  * Загружает шаблон
  *
  * @param      obj   json-объект
@@ -155,8 +167,18 @@ Config load_config(const json::object& obj)
         json::value data{{"percent"s, percent}};
         BOOST_LOG_TRIVIAL(debug) << logging::add_value(additional_data, data);
     }
-
     config.SetPercent(percent);
+
+    std::string email;
+    if (auto it = obj.find(ConfigToken::EMAIL); it != obj.end())
+    {
+        email = load_email(it->value());
+    }
+    {
+        json::value data{{"email"s, email}};
+        BOOST_LOG_TRIVIAL(debug) << logging::add_value(additional_data, data);
+    }
+    config.SetEmail(std::move(email));
 
     return config;
 }

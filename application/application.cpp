@@ -1,5 +1,7 @@
 #include "application.h"
 
+#include <iostream>
+
 namespace app
 {
 
@@ -9,7 +11,8 @@ Application::Application(model::Config& config, const fs::path& scriptPath,
     const fs::path& resultPath, const fs::path& webPath, const fs::path& configJsonPath) :
         m_config{config},
         m_createResultFile{scriptPath, resultPath, webPath, m_config, m_tokens},
-        m_percent{m_config, configJsonPath}
+        m_percent{m_config, configJsonPath},
+        m_email{m_config, webPath}
 {
 }
 
@@ -21,7 +24,9 @@ CreateConnectionResult Application::CreateConnection(const model::Contract::Id i
 
 std::string Application::GetResultFileName(const std::string& body, const Token& token) const
 {
-    return m_createResultFile.CreateFile(body, token);
+    const auto path = m_createResultFile.CreateFile(body, token);
+    m_email.SendEmail(path);
+    return m_createResultFile.MakeResultPath(path);
 }
 
 void Application::Tick(const std::chrono::steady_clock::time_point& timeNow)

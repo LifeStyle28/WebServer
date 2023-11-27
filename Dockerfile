@@ -42,6 +42,9 @@ RUN apt update && apt install -y python3 python3-pip
 # Установим необходимые для скрипта модули
 RUN pip install docxcompose python-docx num2words python-dateutil
 
+# Установим mutt для отправки email
+RUN apt install mutt -y
+
 # Setup OpenSSL
 RUN apt update && apt install -y wget
 ARG OPENSSL_VERSION=1.1.1d
@@ -68,8 +71,9 @@ COPY ./certs /app/certs
 RUN chmod 777 -R /app/certs
 
 # Создадим пользователя admin
-RUN groupadd -r admin && useradd -mrg admin admin
-USER admin
+ARG ADMIN_NAME=admin
+RUN groupadd -r $ADMIN_NAME && useradd -mrg $ADMIN_NAME $ADMIN_NAME
+USER $ADMIN_NAME
 
 # Создадим рабочую папку app и выставим права доступа
 RUN mkdir -p /app/templates && mkdir /app/web && mkdir /app/web/result && mkdir /app/script
@@ -79,6 +83,7 @@ COPY --from=build /app/build/bin/web_server /app/
 COPY --from=build /app/build/lib/* /app/
 COPY ./script /app/script
 COPY ./web /app/web
+COPY ./templates/.muttrc /home/$ADMIN_NAME
 ENV LD_LIBRARY_PATH=/app/
 
 # Запускаем веб-сервер

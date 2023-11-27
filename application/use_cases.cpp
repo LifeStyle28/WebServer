@@ -146,7 +146,7 @@ std::string CreateResultFileUseCase::CreateFile(const std::string& body, const T
         }()};
         std::uniform_int_distribution<uint64_t> dist;
         const std::string folderName(std::to_string(dist(generator))); ///< название сгенерированной папки
-        const std::string generatedFolderPath(m_resultPath.string() + folderName + "/"); ///< полный путь сгенерированной папки
+        const std::string generatedFolderPath(m_resultPath.string() + folderName + "/"s); ///< полный путь сгенерированной папки
 
         start_script(generatedFolderPath, body, m_scriptPath, docNums.str(),
             connection->GetContractDuration(), m_config.GetPercent());
@@ -154,7 +154,7 @@ std::string CreateResultFileUseCase::CreateFile(const std::string& body, const T
         std::string path;
         for (const auto& entry : fs::directory_iterator(generatedFolderPath))
         {
-            if (entry.path().string().find(".7z") != std::string::npos)
+            if (entry.path().string().find(".7z"s) != std::string::npos)
             {
                 path = entry.path().string();
                 break;
@@ -164,17 +164,7 @@ std::string CreateResultFileUseCase::CreateFile(const std::string& body, const T
         {
             throw std::runtime_error("Can't find 7-zip file"s);
         }
-
-        auto make_result_path = [&path](fs::path webPath)
-        {
-            if (const auto pos = path.find(webPath.string()); pos != std::string::npos)
-            {
-                return path.substr(pos + webPath.string().size());
-            }
-            return path;
-        };
-
-        return make_result_path(m_webPath);
+        return path;
     }
     catch (const std::exception& ex)
     {
@@ -183,6 +173,20 @@ std::string CreateResultFileUseCase::CreateFile(const std::string& body, const T
         // @TODO отловить ошибки, которые реально могут возникнуть
     }
     throw std::runtime_error("Can't create file"s);
+}
+
+std::string CreateResultFileUseCase::MakeResultPath(const std::string& path) const
+{
+    auto make_result_path = [&path](fs::path webPath)
+    {
+        if (const auto pos = path.find(webPath.string()); pos != std::string::npos)
+        {
+            return path.substr(pos + webPath.string().size());
+        }
+        return path;
+    };
+
+    return make_result_path(m_webPath);
 }
 
 TimerUseCase::TimerUseCase(ConnectionTokens& connTokens) :
@@ -233,6 +237,36 @@ void PercentUseCase::ChangePercent(const size_t percent)
 size_t PercentUseCase::GetPercent() const noexcept
 {
     return m_config.GetPercent();
+}
+
+SendEmailUseCase::SendEmailUseCase(std::reference_wrapper<const model::Config> config, fs::path webPath) :
+    m_config{config.get()},
+    m_webPath{webPath}
+{
+}
+
+void SendEmailUseCase::SendEmail(std::string_view filePath) const
+{
+    const auto fileName = filePath.substr(filePath.find_last_of('/') + 1);
+    {
+        json::value data{{"fileName"s, filePath}};
+        BOOST_LOG_TRIVIAL(debug) << logging::add_value(additional_data, data);
+    }
+
+    const auto email = m_config.GetEmail();
+
+    if (!email.empty())
+    {
+        const auto command = "mutt -s \"" + std::string(fileName) + "\" -a"s + std::string(filePath)
+            + " -- "s + email;
+
+        {
+            json::value data{{"command"s, command}};
+            BOOST_LOG_TRIVIAL(debug) << logging::add_value(additional_data, data);
+        }
+
+        [[maybe_unused]] const int result = std::system(command.c_str());
+    }
 }
 
 } // namespace app

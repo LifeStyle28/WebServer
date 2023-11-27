@@ -13,6 +13,7 @@ struct ConfigToken
 {
     ConfigToken() = delete;
     static constexpr boost::string_view PERCENT{"percent"};
+    static constexpr boost::string_view EMAIL{"email"};
 };
 
 std::string load_file_as_string(const std::filesystem::path& jsonPath);

@@ -106,4 +106,24 @@ size_t Config::GetPercent() const noexcept
     return m_percent;
 }
 
+/**
+ * @brief      Установить адрес почты агрегации документов
+ *
+ * @param[in]  email  адрес почты
+ */
+void Config::SetEmail(std::string email)
+{
+    m_email = std::move(email);
+}
+
+/**
+ * @brief      Получить адрес почты агрегации документов
+ *
+ * @return     адрес почты
+ */
+const std::string& Config::GetEmail() const noexcept
+{
+    return m_email;
+}
+
 } // namespace model

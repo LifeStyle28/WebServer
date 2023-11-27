@@ -55,6 +55,7 @@ public:
         std::filesystem::path webPath, std::reference_wrapper<const model::Config> config,
         const ConnectionTokens& connTokens);
     std::string CreateFile(const std::string& body, const Token& token) const;
+    std::string MakeResultPath(const std::string& path) const;
 private:
     std::filesystem::path m_scriptPath;
     std::filesystem::path m_resultPath;
@@ -87,6 +88,16 @@ public:
 private:
     model::Config& m_config;
     std::filesystem::path m_configJsonPath;
+};
+
+class SendEmailUseCase
+{
+public:
+    SendEmailUseCase(std::reference_wrapper<const model::Config> config, std::filesystem::path webPath);
+    void SendEmail(std::string_view filePath) const;
+private:
+    const model::Config& m_config;
+    std::filesystem::path m_webPath;
 };
 
 } // namespace app

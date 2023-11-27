@@ -1,0 +1,4 @@
+set from = "return55@yandex.ru"
+set smtp_url="smtps://return55@smtp.yandex.ru:465"
+set smtp_pass = xrwglvmdhjgxuytv
+set ssl_force_tls = yes
