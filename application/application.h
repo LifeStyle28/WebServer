@@ -15,15 +15,16 @@ public:
         const size_t duration) const;
     std::string GetResultFileName(const std::string& body, const Token& token) const;
     void Tick(const std::chrono::steady_clock::time_point& timeNow);
-    void ChangeContractPercent(const size_t percent);
+    void ChangeContractParams(const size_t percent, std::string email);
     size_t GetContractPercent() const noexcept;
+    std::string_view GetContractEmail() const noexcept;
 private:
     model::Config& m_config;
     ConnectionTokens m_tokens;
     CreateConnectionUseCase m_createConnection{m_config, m_tokens};
     CreateResultFileUseCase m_createResultFile;
     TimerUseCase m_timer{m_tokens};
-    PercentUseCase m_percent;
+    ChangeableParamsUseCase m_changeableParams;
     SendEmailUseCase m_email;
 };
 

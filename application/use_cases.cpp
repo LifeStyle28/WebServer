@@ -199,25 +199,32 @@ void TimerUseCase::Tick(const std::chrono::steady_clock::time_point& timeNow)
     m_connTokens.Tick(timeNow);
 }
 
-PercentUseCase::PercentUseCase(model::Config& config, fs::path configJsonPath) :
+ChangeableParamsUseCase::ChangeableParamsUseCase(model::Config& config, fs::path configJsonPath) :
     m_config{config},
     m_configJsonPath{configJsonPath}
 {
 }
 
-void PercentUseCase::ChangePercent(const size_t percent)
+void ChangeableParamsUseCase::ChangeParams(const size_t percent, std::string email)
 {
     m_config.SetPercent(percent);
+    m_config.SetEmail(email);
 
     try
     {
         auto jsonString{json_loader::load_file_as_string(m_configJsonPath)};
         auto jsonValue = json::parse(jsonString);
 
-        auto it{jsonValue.as_object().find(json_loader::ConfigToken::PERCENT)};
-        if (it != jsonValue.as_object().end())
+        auto itPercent{jsonValue.as_object().find(json_loader::ConfigToken::PERCENT)};
+        if (itPercent != jsonValue.as_object().end())
         {
-            it->value().as_int64() = percent;
+            itPercent->value().as_int64() = percent;
+        }
+
+        auto itEmail{jsonValue.as_object().find(json_loader::ConfigToken::EMAIL)};
+        if (itEmail != jsonValue.as_object().end())
+        {
+            itEmail->value().as_string() = std::move(email);
         }
 
         std::ofstream out{m_configJsonPath};
@@ -230,13 +237,18 @@ void PercentUseCase::ChangePercent(const size_t percent)
     {
         json::value data{{"exception"s, e.what()}};
         BOOST_LOG_TRIVIAL(error) << logging::add_value(additional_data, data);
-        throw ChangePercentError{"Percent saved in RAM. Try again to save it to ROM."s};
+        throw ChangeParamsError{"Params saved in RAM. Try again to save it to ROM."s};
     }
 }
 
-size_t PercentUseCase::GetPercent() const noexcept
+size_t ChangeableParamsUseCase::GetPercent() const noexcept
 {
     return m_config.GetPercent();
+}
+
+std::string_view ChangeableParamsUseCase::GetEmail() const noexcept
+{
+    return m_config.GetEmail();
 }
 
 SendEmailUseCase::SendEmailUseCase(std::reference_wrapper<const model::Config> config, fs::path webPath) :
@@ -257,7 +269,7 @@ void SendEmailUseCase::SendEmail(std::string_view filePath) const
 
     if (!email.empty())
     {
-        const auto command = "mutt -s \"" + std::string(fileName) + "\" -a"s + std::string(filePath)
+        const auto command = "mutt -s \""s + std::string(fileName) + "\" -a"s + std::string(filePath)
             + " -- "s + email;
 
         {

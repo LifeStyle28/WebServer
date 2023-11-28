@@ -11,7 +11,7 @@ Application::Application(model::Config& config, const fs::path& scriptPath,
     const fs::path& resultPath, const fs::path& webPath, const fs::path& configJsonPath) :
         m_config{config},
         m_createResultFile{scriptPath, resultPath, webPath, m_config, m_tokens},
-        m_percent{m_config, configJsonPath},
+        m_changeableParams{m_config, configJsonPath},
         m_email{m_config, webPath}
 {
 }
@@ -34,14 +34,19 @@ void Application::Tick(const std::chrono::steady_clock::time_point& timeNow)
     m_timer.Tick(timeNow);
 }
 
-void Application::ChangeContractPercent(const size_t percent)
+void Application::ChangeContractParams(const size_t percent, std::string email)
 {
-    m_percent.ChangePercent(percent);
+    m_changeableParams.ChangeParams(percent, std::move(email));
 }
 
 size_t Application::GetContractPercent() const noexcept
 {
-    return m_percent.GetPercent();
+    return m_changeableParams.GetPercent();
+}
+
+std::string_view Application::GetContractEmail() const noexcept
+{
+    return m_changeableParams.GetEmail();
 }
 
 } // namespace app

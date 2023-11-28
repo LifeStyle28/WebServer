@@ -28,8 +28,8 @@ struct Endpoint
     static constexpr std::string_view API_PREFIX = "/api/"sv;
     static constexpr std::string_view TAG_VALUES = "/api/v1/prog/tag_values"sv;
     static constexpr std::string_view FILLED_CONTENT = "/api/v1/prog/filled_content"sv;
-    static constexpr std::string_view CHANGE_PERCENT = "/api/v1/prog/change_percent"sv;
-    static constexpr std::string_view PERCENT = "/api/v1/prog/percent"sv;
+    static constexpr std::string_view CHANGE_PARAMS = "/api/v1/prog/change_params"sv;
+    static constexpr std::string_view PARAMS = "/api/v1/prog/params"sv;
 };
 
 struct CacheControl
@@ -80,16 +80,19 @@ struct FilledContentResponse
     static constexpr json::string_view FILE_NAME = "fileName";
 };
 
-struct ChangePercentRequest
+struct ChangeParamsRequest
 {
     size_t percent;
+    std::string email;
     static constexpr json::string_view PERCENT = "percent";
+    static constexpr json::string_view EMAIL = "email";
 };
 
-struct PercentResponce
+struct ChangeParamsResponse
 {
-    PercentResponce() = delete;
+    ChangeParamsResponse() = delete;
     static constexpr json::string_view PERCENT = "percent";
+    static constexpr json::string_view EMAIL = "email";
 };
 
 struct BadRequestErrorCode
@@ -222,14 +225,17 @@ json::object create_conn_result_to_json(app::CreateConnectionResult result)
     };
 }
 
-size_t parse_change_percent_request(boost::string_view body)
+ChangeParamsRequest parse_change_params_request(boost::string_view body)
 {
     try
     {
         const auto reqJson = json::parse(body);
         const auto& obj = reqJson.as_object();
-
-        return obj.at(ChangePercentRequest::PERCENT).as_int64();
+        return
+        {
+            static_cast<size_t>(obj.at(ChangeParamsRequest::PERCENT).as_int64()),
+            json_val_as_string(obj.at(ChangeParamsRequest::EMAIL))
+        };
     }
     catch (const std::out_of_range& e)
     {
@@ -306,13 +312,13 @@ private:
             {
                 return FilledContentHandle();
             }
-            else if (target == Endpoint::CHANGE_PERCENT)
+            else if (target == Endpoint::CHANGE_PARAMS)
             {
-                return ChangePercentHandle();
+                return ChangeParamsHandle();
             }
-            else if (target == Endpoint::PERCENT)
+            else if (target == Endpoint::PARAMS)
             {
-                return PercentHandle();
+                return ParamsHandle();
             }
             throw BadRequest("badRequest"s, "Invalid endpoint"s);
         }
@@ -374,29 +380,33 @@ private:
         });
     }
 
-    StringResponse ChangePercentHandle() const
+    StringResponse ChangeParamsHandle() const
     {
         EnsureMethod(http::verb::post);
         EnsureJsonContentType();
 
         try
         {
-            const auto percent{parse_change_percent_request(m_request.body())};
-            m_app.ChangeContractPercent(percent);
+            const auto params{parse_change_params_request(m_request.body())};
+            m_app.ChangeContractParams(params.percent, params.email);
 
             return m_builder.MakePlainTextResponse("Change Percent is successful"sv);
         }
-        catch (const app::ChangePercentError& e)
+        catch (const app::ChangeParamsError& e)
         {
             return m_builder.MakeInternalServerError(e.what());
         }
     }
 
-    StringResponse PercentHandle() const
+    StringResponse ParamsHandle() const
     {
         EnsureMethod(http::verb::get);
 
-        json::object obj{{PercentResponce::PERCENT, m_app.GetContractPercent()}};
+        json::object obj
+        {
+            {ChangeParamsResponse::PERCENT, m_app.GetContractPercent()},
+            {ChangeParamsResponse::EMAIL, m_app.GetContractEmail()}
+        };
         return m_builder.MakeJSONResponse(json::serialize(obj));
     }
 

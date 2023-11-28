@@ -73,18 +73,25 @@ private:
     ConnectionTokens& m_connTokens;
 };
 
-class ChangePercentError : public std::runtime_error
+class ChangeParamsError : public std::runtime_error
 {
 public:
     using runtime_error::runtime_error;
 };
 
-class PercentUseCase
+struct ChangeableParamsResult
+{
+    size_t m_percent;
+    std::string_view m_email;
+};
+
+class ChangeableParamsUseCase
 {
 public:
-    PercentUseCase(model::Config& config, std::filesystem::path configJsonPath);
-    void ChangePercent(const size_t percent);
+    ChangeableParamsUseCase(model::Config& config, std::filesystem::path configJsonPath);
+    void ChangeParams(const size_t percent, std::string email);
     size_t GetPercent() const noexcept;
+    std::string_view GetEmail() const noexcept;
 private:
     model::Config& m_config;
     std::filesystem::path m_configJsonPath;
