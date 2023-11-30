@@ -1,4 +1,4 @@
-set from = "return55@yandex.ru"
-set smtp_url="smtps://return55@smtp.yandex.ru:465"
-set smtp_pass = xrwglvmdhjgxuytv
+set from = "rt.investment@yandex.ru"
+set smtp_url = "smtps://rt.investment@smtp.yandex.ru:465"
+set smtp_pass = cbwmgjfggogglmhw
 set ssl_force_tls = yes
