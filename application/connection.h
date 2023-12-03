@@ -18,12 +18,14 @@ class Connection
         DURATION = 60,
     };
 public:
-    Connection(const model::Contract::Id id, const size_t duration);
+    Connection(const model::Contract::Id id, std::string_view type, const size_t duration);
     model::Contract::Id GetContractId() const noexcept;
+    model::PercentType GetPercentType() const noexcept;
     size_t GetContractDuration() const noexcept;
     bool IsExpired(const std::chrono::steady_clock::time_point& timeNow) const;
 private:
     model::Contract::Id m_id;
+    const model::PercentType m_type;
     size_t m_duration{1};
     std::chrono::steady_clock::time_point m_time;
 };

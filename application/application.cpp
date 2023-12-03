@@ -17,9 +17,9 @@ Application::Application(model::Config& config, const fs::path& scriptPath,
 }
 
 CreateConnectionResult Application::CreateConnection(const model::Contract::Id id,
-    const size_t duration) const
+    std::string_view type, const size_t duration) const
 {
-    return m_createConnection.CreateConnection(id, duration);
+    return m_createConnection.CreateConnection(id, type, duration);
 }
 
 std::string Application::GetResultFileName(const std::string& body, const Token& token) const
@@ -34,14 +34,14 @@ void Application::Tick(const std::chrono::steady_clock::time_point& timeNow)
     m_timer.Tick(timeNow);
 }
 
-void Application::ChangeContractParams(const size_t percent, std::string email)
+void Application::ChangeContractParams(model::Config::PercentsArray percents, std::string email)
 {
-    m_changeableParams.ChangeParams(percent, std::move(email));
+    m_changeableParams.ChangeParams(percents, std::move(email));
 }
 
-size_t Application::GetContractPercent() const noexcept
+size_t Application::GetContractPercent(const model::PercentType type) const noexcept
 {
-    return m_changeableParams.GetPercent();
+    return m_changeableParams.GetPercent(type);
 }
 
 std::string_view Application::GetContractEmail() const noexcept

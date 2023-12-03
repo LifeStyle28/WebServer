@@ -36,7 +36,8 @@ class CreateConnectionUseCase
 public:
     CreateConnectionUseCase(std::reference_wrapper<const model::Config> config,
         ConnectionTokens& connTokens);
-    CreateConnectionResult CreateConnection(const model::Contract::Id id, const size_t duration) const;
+    CreateConnectionResult CreateConnection(const model::Contract::Id id, std::string_view type,
+        const size_t duration) const;
 private:
     const model::Config& m_config;
     ConnectionTokens& m_connTokens;
@@ -89,8 +90,8 @@ class ChangeableParamsUseCase
 {
 public:
     ChangeableParamsUseCase(model::Config& config, std::filesystem::path configJsonPath);
-    void ChangeParams(const size_t percent, std::string email);
-    size_t GetPercent() const noexcept;
+    void ChangeParams(model::Config::PercentsArray percents, std::string email);
+    size_t GetPercent(const model::PercentType type) const noexcept;
     std::string_view GetEmail() const noexcept;
 private:
     model::Config& m_config;

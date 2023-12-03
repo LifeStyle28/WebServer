@@ -34,7 +34,7 @@ CreateConnectionUseCase::CreateConnectionUseCase(std::reference_wrapper<const mo
 }
 
 CreateConnectionResult CreateConnectionUseCase::CreateConnection(const model::Contract::Id id,
-    const size_t duration) const
+    std::string_view type, const size_t duration) const
 {
     const auto contractPtr{m_config.FindContractIndexBy(id)};
     if (!contractPtr)
@@ -44,7 +44,7 @@ CreateConnectionResult CreateConnectionUseCase::CreateConnection(const model::Co
 
     try
     {
-        const auto token{m_connTokens.AddConnection(Connection{id, duration})};
+        const auto token{m_connTokens.AddConnection(Connection{id, type, duration})};
         return {token, contractPtr->GetContractTagValues()};
     }
     catch (...)
@@ -149,7 +149,7 @@ std::string CreateResultFileUseCase::CreateFile(const std::string& body, const T
         const std::string generatedFolderPath(m_resultPath.string() + folderName + "/"s); ///< полный путь сгенерированной папки
 
         start_script(generatedFolderPath, body, m_scriptPath, docNums.str(),
-            connection->GetContractDuration(), m_config.GetPercent());
+            connection->GetContractDuration(), m_config.GetPercent(connection->GetPercentType()));
 
         std::string path;
         for (const auto& entry : fs::directory_iterator(generatedFolderPath))
@@ -205,9 +205,9 @@ ChangeableParamsUseCase::ChangeableParamsUseCase(model::Config& config, fs::path
 {
 }
 
-void ChangeableParamsUseCase::ChangeParams(const size_t percent, std::string email)
+void ChangeableParamsUseCase::ChangeParams(model::Config::PercentsArray percents, std::string email)
 {
-    m_config.SetPercent(percent);
+    m_config.SetPercents(percents);
     m_config.SetEmail(email);
 
     try
@@ -215,10 +215,14 @@ void ChangeableParamsUseCase::ChangeParams(const size_t percent, std::string ema
         auto jsonString{json_loader::load_file_as_string(m_configJsonPath)};
         auto jsonValue = json::parse(jsonString);
 
-        auto itPercent{jsonValue.as_object().find(json_loader::ConfigToken::PERCENT)};
-        if (itPercent != jsonValue.as_object().end())
+        for (size_t i = 0; i < static_cast<size_t>(model::PercentType::PERCENT_CNT); ++i)
         {
-            itPercent->value().as_int64() = percent;
+            auto itPercent{jsonValue.as_object().find(
+                convert_percent_type_to_sv(static_cast<model::PercentType>(i)))};
+            if (itPercent != jsonValue.as_object().end())
+            {
+                itPercent->value().as_int64() = percents[i];
+            }
         }
 
         auto itEmail{jsonValue.as_object().find(json_loader::ConfigToken::EMAIL)};
@@ -241,9 +245,9 @@ void ChangeableParamsUseCase::ChangeParams(const size_t percent, std::string ema
     }
 }
 
-size_t ChangeableParamsUseCase::GetPercent() const noexcept
+size_t ChangeableParamsUseCase::GetPercent(const model::PercentType type) const noexcept
 {
-    return m_config.GetPercent();
+    return m_config.GetPercent(type);
 }
 
 std::string_view ChangeableParamsUseCase::GetEmail() const noexcept

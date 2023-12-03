@@ -1,6 +1,9 @@
 {
 	"email" : "return55@yandex.ru",
-	"percent" : 22,
+	"percent_roubles" : 22,
+	"percent_usd" : 10,
+	"percent_euro" : 11,
+	"percent_usdt" : 12,
 	"contracts" : [
 		{
 			"id":"RUSTONN_PHYS_PERSON_ROUBLES_CASH",

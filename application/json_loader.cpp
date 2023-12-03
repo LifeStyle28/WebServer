@@ -157,17 +157,23 @@ Config load_config(const json::object& obj)
         config.AddContract(contract);
     }
 
-    size_t percent = static_cast<size_t>(DefaultInvariants::PERCENT);
-    if (auto it = obj.find(ConfigToken::PERCENT); it != obj.end())
+    model::Config::PercentsArray percents;
+    for (size_t i = 0; i < static_cast<size_t>(model::PercentType::PERCENT_CNT); ++i)
     {
-        percent = load_percent(it->value());
-    }
+        size_t percent = static_cast<size_t>(DefaultInvariants::PERCENT);
+        if (auto it = obj.find(convert_percent_type_to_sv(static_cast<model::PercentType>(i)));
+            it != obj.end())
+        {
+            percent = load_percent(it->value());
+        }
 
-    {
-        json::value data{{"percent"s, percent}};
-        BOOST_LOG_TRIVIAL(debug) << logging::add_value(additional_data, data);
+        {
+            json::value data{{"percent"s, percent}};
+            BOOST_LOG_TRIVIAL(debug) << logging::add_value(additional_data, data);
+        }
+        percents[i] = percent;
     }
-    config.SetPercent(percent);
+    config.SetPercents(percents);
 
     std::string email;
     if (auto it = obj.find(ConfigToken::EMAIL); it != obj.end())

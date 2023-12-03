@@ -82,16 +82,22 @@ struct FilledContentResponse
 
 struct ChangeParamsRequest
 {
-    size_t percent;
+    model::Config::PercentsArray percents;
     std::string email;
-    static constexpr json::string_view PERCENT = "percent";
+    static constexpr json::string_view PERCENT_ROUBLES = "percent_roubles";
+    static constexpr json::string_view PERCENT_USD = "percent_usd";
+    static constexpr json::string_view PERCENT_EURO = "percent_euro";
+    static constexpr json::string_view PERCENT_USDT = "percent_usdt";
     static constexpr json::string_view EMAIL = "email";
 };
 
 struct ChangeParamsResponse
 {
     ChangeParamsResponse() = delete;
-    static constexpr json::string_view PERCENT = "percent";
+    static constexpr json::string_view PERCENT_ROUBLES = "percent_roubles";
+    static constexpr json::string_view PERCENT_USD = "percent_usd";
+    static constexpr json::string_view PERCENT_EURO = "percent_euro";
+    static constexpr json::string_view PERCENT_USDT = "percent_usdt";
     static constexpr json::string_view EMAIL = "email";
 };
 
@@ -231,9 +237,15 @@ ChangeParamsRequest parse_change_params_request(boost::string_view body)
     {
         const auto reqJson = json::parse(body);
         const auto& obj = reqJson.as_object();
+
         return
         {
-            static_cast<size_t>(obj.at(ChangeParamsRequest::PERCENT).as_int64()),
+            {
+                static_cast<size_t>(obj.at(ChangeParamsRequest::PERCENT_ROUBLES).as_int64()),
+                static_cast<size_t>(obj.at(ChangeParamsRequest::PERCENT_USD).as_int64()),
+                static_cast<size_t>(obj.at(ChangeParamsRequest::PERCENT_EURO).as_int64()),
+                static_cast<size_t>(obj.at(ChangeParamsRequest::PERCENT_USDT).as_int64()),
+            },
             json_val_as_string(obj.at(ChangeParamsRequest::EMAIL))
         };
     }
@@ -354,7 +366,8 @@ private:
             const auto createConnResult{m_app.CreateConnection(model::Contract::Id(
                 tagValuesReq.contractType + '_' +
                 tagValuesReq.currencyType + '_' +
-                tagValuesReq.currencyKind), tagValuesReq.contractDuration)
+                tagValuesReq.currencyKind),
+                tagValuesReq.currencyType, tagValuesReq.contractDuration)
             };
 
             return m_builder.MakeJSONResponse(
@@ -388,7 +401,7 @@ private:
         try
         {
             const auto params{parse_change_params_request(m_request.body())};
-            m_app.ChangeContractParams(params.percent, params.email);
+            m_app.ChangeContractParams(params.percents, params.email);
 
             return m_builder.MakePlainTextResponse("Change Percent is successful"sv);
         }
@@ -400,11 +413,16 @@ private:
 
     StringResponse ParamsHandle() const
     {
+        using namespace model;
+
         EnsureMethod(http::verb::get);
 
         json::object obj
         {
-            {ChangeParamsResponse::PERCENT, m_app.GetContractPercent()},
+            {ChangeParamsResponse::PERCENT_ROUBLES, m_app.GetContractPercent(PercentType::PERCENT_ROUBLES)},
+            {ChangeParamsResponse::PERCENT_USD, m_app.GetContractPercent(PercentType::PERCENT_USD)},
+            {ChangeParamsResponse::PERCENT_EURO, m_app.GetContractPercent(PercentType::PERCENT_EURO)},
+            {ChangeParamsResponse::PERCENT_USDT, m_app.GetContractPercent(PercentType::PERCENT_USDT)},
             {ChangeParamsResponse::EMAIL, m_app.GetContractEmail()}
         };
         return m_builder.MakeJSONResponse(json::serialize(obj));

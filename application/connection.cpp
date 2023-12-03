@@ -5,14 +5,42 @@
 namespace app
 {
 
+using namespace std::literals;
+
+/**
+ * @brief      Сконвертировать тип валюты в тип процентной ставки
+ *
+ * @param[in]  type  тип валюты
+ *
+ * @return     тип процентной ставки
+ */
+static model::PercentType convert_string_to_percent_type(std::string_view type)
+{
+    static const std::unordered_map<std::string_view, model::PercentType> svToPercentType =
+    {
+        {"ROUBLES"sv, model::PercentType::PERCENT_ROUBLES},
+        {"DOLLARS"sv, model::PercentType::PERCENT_USD},
+        {"EURO"sv, model::PercentType::PERCENT_EURO},
+        {"USDT"sv, model::PercentType::PERCENT_USDT},
+    };
+
+    if (auto it = svToPercentType.find(type); it != svToPercentType.end())
+    {
+        return it->second;
+    }
+    throw std::runtime_error{"Bad percent type string"s};
+}
+
 /**
  * @brief      Конструктор
  *
  * @param[in]  id        идентификатор контракта
+ * @param[in]  type      тип процентной валюты
  * @param[in]  duration  длительность контракта (лет)
  */
-Connection::Connection(const model::Contract::Id id, const size_t duration) :
+Connection::Connection(const model::Contract::Id id, std::string_view type, const size_t duration) :
     m_id{id},
+    m_type{convert_string_to_percent_type(type)},
     m_duration{duration},
     m_time{std::chrono::steady_clock::now()}
 {
@@ -26,6 +54,16 @@ Connection::Connection(const model::Contract::Id id, const size_t duration) :
 model::Contract::Id Connection::GetContractId() const noexcept
 {
     return m_id;
+}
+
+/**
+ * @brief      Получить тип процентной ставки
+ *
+ * @return     тип процентной ставки
+ */
+model::PercentType Connection::GetPercentType() const noexcept
+{
+    return m_type;
 }
 
 /**

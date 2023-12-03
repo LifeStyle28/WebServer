@@ -5,8 +5,9 @@
 #include <vector>
 #include <string_view>
 #include <unordered_map>
+#include <array>
 
-#include <boost/iterator/indirect_iterator.hpp>
+#include <boost/utility/string_view.hpp>
 
 namespace model
 {
@@ -37,11 +38,22 @@ private:
     ContractTagValues m_contractFields;
 };
 
+enum class PercentType
+{
+    PERCENT_ROUBLES = 0,
+    PERCENT_USD,
+    PERCENT_EURO,
+    PERCENT_USDT,
+    PERCENT_CNT
+};
+
 class Config
 {
     using ContractsStorage = std::vector<std::unique_ptr<Contract>>;
     using ContractIdHasher = util::TaggedHasher<Contract::Id>;
     using ContractIdToIndex = std::unordered_map<Contract::Id, size_t, ContractIdHasher>;
+public:
+    using PercentsArray = std::array<size_t, static_cast<size_t>(PercentType::PERCENT_CNT)>;
 public:
     Config() = default;
     Config(Config&& other) noexcept(false); ///< т.к. имеем unique_ptr
@@ -49,15 +61,17 @@ public:
     ~Config() = default;
     void AddContract(Contract contract);
     Contract* FindContractIndexBy(const Contract::Id id) const noexcept;
-    void SetPercent(const size_t percent);
-    size_t GetPercent() const noexcept;
+    void SetPercents(PercentsArray percents);
+    size_t GetPercent(const PercentType type) const noexcept;
     void SetEmail(std::string email);
     const std::string& GetEmail() const noexcept;
 private:
     ContractsStorage m_contracts;
     ContractIdToIndex m_contractIdToIndex;
-    size_t m_percent{0};
+    PercentsArray m_percents;
     std::string m_email;
 };
+
+boost::string_view convert_percent_type_to_sv(const PercentType type);
 
 } // namespace model

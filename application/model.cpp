@@ -1,5 +1,7 @@
 #include "model.h"
 
+#include <unordered_map>
+
 #include <boost/scope_exit.hpp>
 
 namespace model
@@ -91,9 +93,9 @@ Contract* Config::FindContractIndexBy(const Contract::Id id) const noexcept
  *
  * @param[in]  percent  процент
  */
-void Config::SetPercent(const size_t percent)
+void Config::SetPercents(PercentsArray percents)
 {
-    m_percent = percent;
+    m_percents = std::move(percents);
 }
 
 /**
@@ -101,9 +103,9 @@ void Config::SetPercent(const size_t percent)
  *
  * @return     процент
  */
-size_t Config::GetPercent() const noexcept
+size_t Config::GetPercent(const PercentType type) const noexcept
 {
-    return m_percent;
+    return m_percents[static_cast<size_t>(type)];
 }
 
 /**
@@ -124,6 +126,30 @@ void Config::SetEmail(std::string email)
 const std::string& Config::GetEmail() const noexcept
 {
     return m_email;
+}
+
+/**
+ * @brief      Сконвертировать тип процента в строку конфигурации
+ *
+ * @param[in]  type  тип
+ *
+ * @return     строка конфигурации
+ */
+boost::string_view convert_percent_type_to_sv(const PercentType type)
+{
+    static const std::unordered_map<PercentType, boost::string_view> typeToString =
+    {
+        {PercentType::PERCENT_ROUBLES, "percent_roubles"},
+        {PercentType::PERCENT_USD, "percent_usd"},
+        {PercentType::PERCENT_EURO, "percent_euro"},
+        {PercentType::PERCENT_USDT, "percent_usdt"},
+    };
+
+    if (type < PercentType::PERCENT_CNT)
+    {
+        return typeToString.at(type);
+    }
+    throw std::runtime_error{"Bad percent type"s};
 }
 
 } // namespace model

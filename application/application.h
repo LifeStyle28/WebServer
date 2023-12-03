@@ -11,12 +11,12 @@ public:
     Application(model::Config& config, const std::filesystem::path& scriptPath,
         const std::filesystem::path& resultPath, const std::filesystem::path& webPath,
         const std::filesystem::path& configJsonPath);
-    CreateConnectionResult CreateConnection(const model::Contract::Id id,
+    CreateConnectionResult CreateConnection(const model::Contract::Id id, std::string_view type,
         const size_t duration) const;
     std::string GetResultFileName(const std::string& body, const Token& token) const;
     void Tick(const std::chrono::steady_clock::time_point& timeNow);
-    void ChangeContractParams(const size_t percent, std::string email);
-    size_t GetContractPercent() const noexcept;
+    void ChangeContractParams(model::Config::PercentsArray percents, std::string email);
+    size_t GetContractPercent(const model::PercentType type) const noexcept;
     std::string_view GetContractEmail() const noexcept;
 private:
     model::Config& m_config;
