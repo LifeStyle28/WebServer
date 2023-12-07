@@ -273,8 +273,16 @@ void SendEmailUseCase::SendEmail(std::string_view filePath) const
 
     if (!email.empty())
     {
-        const auto command = "mutt -s \""s + std::string(fileName) + "\" -a"s + std::string(filePath)
+        auto command = "mutt -s \""s + std::string(fileName) + "\" -a"s + std::string(filePath)
             + " -- "s + email;
+
+        auto pos = command.find('$');
+
+        while (pos != std::string::npos)
+        {
+            command.insert(pos, 1, '\\');
+            pos = command.find('$', pos + 2);
+        }
 
         {
             json::value data{{"command"s, command}};
