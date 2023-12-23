@@ -10,9 +10,17 @@ services:
     restart: always
     volumes:
       - result_volume:/app/web/result:z
+    logging:
+      driver: json-file
+      options:
+        max-size: 100m
   cron:
     build:
       context: cron
     volumes:
       - result_volume:/result
     restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
