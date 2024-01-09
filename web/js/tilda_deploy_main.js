@@ -248,18 +248,21 @@ function onNextPage() {
     console.log(JSON.stringify(first_page_json));
     // отправить хттп запрос с json-файлом
 
-    $.post({
-      url: "https://websrustonn.ru/api/v1/prog/tag_values",
-      dataType: "json",
-      contentType: "application/json",
-      data: JSON.stringify(first_page_json),
-    })
+   $.ajaxSetup({
+     dataType: "json",
+     contentType: "application/json"
+   });
+   $.post(
+     "https://rustonninvest.ru/api/v1/prog/tag_values",
+     JSON.stringify(first_page_json)
+   )
       .done(function (data) {
         first_page_json_response = data;
         localStorage.setItem(
           "first_page_json_response",
           JSON.stringify(first_page_json_response)
         );
+        
         console.log(first_page_json_response); // Вывод данных для проверки
         // переходим на некст страницу
         // window.location.href = "#popup:page2";
@@ -368,15 +371,44 @@ function second_page(first_page_json_response) {
       // Get placeholder text
       key = obj.key;
       if (tag == "number") {
-        container.insertAdjacentHTML(
-          "beforeend",
-          `<input class="form-element" id= "${obj.tag}" type="${tag}" placeholder="${key}" inputmode="numeric">`
-        );
+          console.log("objtag" + obj.tag);
+            container.insertAdjacentHTML(
+                "beforeend",
+                `<input class="form-element" id= "${obj.tag}" type="${tag}" placeholder="${key}" inputmode="numeric">`
+            );
       } else {
-        container.insertAdjacentHTML(
-          "beforeend",
-          `<input class="form-element" id= "${obj.tag}" type="${tag}" placeholder="${key}">`
-        );
+          if (obj.tag == "@<SUMM_NUMBER>@")
+          {
+            var currency = first_page_json.currencyType;
+            var phStr = "Введите сумму займа (от";
+            if (currency == "ROUBLES")
+            {
+                phStr += " 500 т.р.)";
+            }
+            else if (currency == "DOLLARS")
+            {
+                phStr += " 5000 долларов)";
+            }
+            else if (currency == "EURO")
+            {
+                phStr += " 5000 евро)";
+            }
+            else
+            {
+                phStr += " 5000 USDT)";
+            }
+            container.insertAdjacentHTML(
+                "beforeend",
+                `<input class="form-element" id= "${obj.tag}" type="${tag}" placeholder="${phStr}" inputmode="numeric">`
+            );  
+          }
+          else
+          {
+            container.insertAdjacentHTML(
+                "beforeend",
+                `<input class="form-element" id= "${obj.tag}" type="${tag}" placeholder="${key}" inputmode="numeric">`
+            );  
+          }
       }
 
       console.log(getObjectByTag(obj.tag));
@@ -502,6 +534,32 @@ function second_page(first_page_json_response) {
       );
     }
 
+    function isCorrectSumm(s)
+    {
+        console.log("isCorrect" + s);
+        if (first_page_json.currencyType == "ROUBLES" && s >= 500000)
+        {
+            console.log("s" + s);
+            return true;
+        }
+        else if (first_page_json.currencyType == "DOLLARS" && s >= 5000)
+        {
+            console.log("s" + s);
+            return true;
+        }
+        else if (first_page_json.currencyType == "EURO" && s >= 5000)
+        {
+            console.log("s" + s);
+            return true;
+        }
+        else if (first_page_json.currencyType == "USDT" && s >= 5000)
+        {
+            console.log("s" + s);
+            return true;
+        }
+        return false;
+    }
+
     // Добавьте обработчик событий к input
     var inputs = document.querySelectorAll(".form-element");
     inputs.forEach(function (input) {
@@ -571,9 +629,18 @@ function second_page(first_page_json_response) {
           let formatter = new Intl.NumberFormat("ru-RU");
           let newValue = value.replace(/\D/g, "");
           let formattedNumber = formatter.format(newValue); // Outputs: "1 000 000"
-          jsonArray[indexToFind].value = parseInt(newValue);
           event.target.value = formattedNumber; // Update the input field value
-          event.target.classList.remove("invalid-input");
+          if (isCorrectSumm(newValue))
+          {
+            jsonArray[indexToFind].value = parseInt(newValue);
+            event.target.classList.remove("invalid-input");  
+          }
+          else
+          {
+            event.target.classList.add("invalid-input");
+            jsonArray[indexToFind].value = "";
+          }
+
         } else {
           event.target.classList.remove("invalid-input");
           jsonArray[indexToFind].value = value;
@@ -599,7 +666,6 @@ function second_page(first_page_json_response) {
       }
     });
   }
-
   function finalReq() {
     var shouldSendRequest = true;
     prevButton = document.getElementById("prev_button");
@@ -658,61 +724,75 @@ function second_page(first_page_json_response) {
           return;
         }
       }
+      shouldSendRequest = true;
       if (shouldSendRequest) {
-        $.post({
-          url: "https://websrustonn.ru/api/v1/prog/filled_content",
-          type: "POST",
-          dataType: "json",
-          contentType: "application/json",
-          data: JSON.stringify({
+        $.ajaxSetup({
+            dataType: "json",
+            contentType: "application/json"
+        });
+
+        $.ajax({
+        url: "https://rustonninvest.ru/api/v1/prog/filled_content",
+        type: "POST",
+        data: JSON.stringify({
             from_tag_values: first_page_json_response.tag_values,
-          }),
-          headers: {
+        }),
+        headers: {
             Authorization: `Bearer ${first_page_json_response.token}`,
-          },
+        },
+        success: function(data) {
+            // Обработка успешного ответа
+            console.log(data);
+            var element = document.getElementsByClassName(
+                "t-popup__close-wrapper t-popup__block-close-button"
+            )[1];
+
+            // Клик по элементу
+            element.click();
+            location.reload();
+            var linkToPopup = document.createElement("a");
+            linkToPopup.setAttribute("href", "#popup:infoblock");
+            linkToPopup.style.display = "none";
+            document.querySelector(".r").appendChild(linkToPopup);
+            linkToPopup.click();
+
+            let popUpOpn = document.querySelector(".t-popup_show .t-popup__close");
+            if (popUpOpn) {
+                popUpOpn.click();
+            }
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+            // Обработка ошибки
+            console.error("Error:", error);
+        }
+        });
+          
+          
+        /*
+        $.ajaxSetup({
+            dataType: "json",
+            contentType: "application/json"
+        });
+        $.post(
+            "https://rustonninvest.ru/api/v1/prog/filled_content",
+            JSON.stringify({
+            from_tag_values: first_page_json_response.tag_values,
+        }),
+        {
+            headers: {
+            Authorization: `Bearer ${first_page_json_response.token}`,
+            },
         })
           .done((data) => {
             console.log(data);
-            var file_name = data.fileName;
-            // Выполнить GET запрос сразу после получения ответа на POST запрос
-            $.ajax({
-              url: `https://websrustonn.ru/${data.fileName}`, // replace with your URL
-              type: "GET",
-              xhrFields: {
-                responseType: "blob", // to avoid binary data being mangled on charset conversion
-              },
-              success: function (blob) {
-                // Create URL from Blob
-                const url = window.URL.createObjectURL(blob);
-                // Create download link
-                const a = document.createElement("a");
-                a.href = url;
-                var parts = file_name.split("/");
-                // Set the download file name
-                a.download = parts[2];
-                // Trigger the download
-                document.body.appendChild(a);
-                a.click();
-                // Remove the temporary link
-                document.body.removeChild(a);
-                var element = document.getElementsByClassName(
-                "t-popup__close-wrapper t-popup__block-close-button"
-                )[1];
-
-                // Клик по элементу
-                element.click();
-                location.reload();
-              },
-              error: function (err) {
-                console.error("Ошибка:", err);
-              },
-            });
           })
           .fail((error) => {
             console.error("Error:", error);
           });
+          */
       }
     });
+
   }
 
   finalReq();
